@@ -13,7 +13,7 @@ import com.example.plantgrow.data.plant.PlantDao
 
 @Database(
     entities = [Bed::class, Plant::class, Pest::class],
-    version = 1,
+    version = 3,
     exportSchema = true
 )
 abstract class GardenDatabase : RoomDatabase() {
@@ -32,7 +32,7 @@ abstract class GardenDatabase : RoomDatabase() {
                     GardenDatabase::class.java,
                     "garden.db"
                 )
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(false)
                     .build()
                 INSTANCE = instance
                 instance

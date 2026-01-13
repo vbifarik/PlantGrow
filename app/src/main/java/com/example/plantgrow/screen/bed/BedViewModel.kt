@@ -14,8 +14,12 @@ class BedViewModel @Inject constructor(
     private val repository: GardenRepository
 ) : ViewModel() {
     val beds: Flow<List<Bed>> = repository.getAllBeds()
-
     fun addBed(name: String) = viewModelScope.launch {
         repository.insertBed(Bed(name = name))
+    }
+    fun populatePlantsDatabase() {
+        viewModelScope.launch {
+            repository.populateInitialPlantsData()
+        }
     }
 }

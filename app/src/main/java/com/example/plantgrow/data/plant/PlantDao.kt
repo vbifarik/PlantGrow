@@ -9,12 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlantDao {
-    @Query("SELECT * FROM plants WHERE bedId = :bedId ORDER BY name ASC")
-    fun getPlantsForBed(bedId: Int): Flow<List<Plant>>
-
-    @Query("SELECT * FROM plants WHERE id = :plantId")
-    suspend fun getPlantById(plantId: Int): Plant?
-
     @Insert
     suspend fun insert(plant: Plant): Long
 
@@ -24,6 +18,25 @@ interface PlantDao {
     @Delete
     suspend fun delete(plant: Plant)
 
-    @Query("DELETE FROM plants WHERE bedId = :bedId")
-    suspend fun deletePlantsByBedId(bedId: Int)
+    @Query("SELECT * FROM plants WHERE id = :plantId")
+    suspend fun getPlantById(plantId: Int): Plant?
+
+    @Query("SELECT * FROM plants ORDER BY name")
+    fun getAllPlants(): Flow<List<Plant>>
+
+    @Query("SELECT * FROM plants WHERE name LIKE '%' || :searchQuery || '%' OR mainGenus LIKE '%' || :searchQuery || '%'")
+    suspend fun searchPlants(searchQuery: String): List<Plant>
+
+    @Query("SELECT * FROM plants WHERE mainGenus = :genus ORDER BY name")
+    suspend fun getPlantsByGenus(genus: String): List<Plant>
+
+    @Query("SELECT DISTINCT mainGenus FROM plants WHERE mainGenus != '' ORDER BY mainGenus")
+    suspend fun getAllGenera(): List<String>
+
+    @Query("SELECT mainGenus, COUNT(*) as plantCount FROM plants WHERE mainGenus != '' GROUP BY mainGenus ORDER BY mainGenus")
+    suspend fun getGeneraWithCount(): List<GenusWithCount>
 }
+data class GenusWithCount(
+    val mainGenus: String,
+    val plantCount: Int
+)
