@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.plantgrow.screen.bed.BedScreen
 import com.example.plantgrow.screen.pest.PestScreen
+import com.example.plantgrow.screen.pestdetail.PestDetailScreen
 import com.example.plantgrow.screen.plant.PlantByCategoryScreen
 import com.example.plantgrow.screen.plantCategory.PlantCategoryScreen
 import com.example.plantgrow.screen.plantDetails.PlantDetailScreen
@@ -47,6 +48,16 @@ fun NavGraph(navController: NavHostController) {
             )
         ) { backStackEntry ->
             PlantDetailScreen(navController = navController)
+        }
+        composable(
+            route = Screens.PestDetail.route,
+            arguments = listOf(
+                navArgument("pestId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            PestDetailScreen(navController = navController)
         }
     }
 }

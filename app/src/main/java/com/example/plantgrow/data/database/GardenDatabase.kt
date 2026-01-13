@@ -13,7 +13,7 @@ import com.example.plantgrow.data.plant.PlantDao
 
 @Database(
     entities = [Bed::class, Plant::class, Pest::class],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class GardenDatabase : RoomDatabase() {

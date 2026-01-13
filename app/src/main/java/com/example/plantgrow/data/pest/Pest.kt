@@ -12,5 +12,7 @@ data class Pest(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val description: String
+    val description: String,
+    val prevention: String,
+    val image: String
 )
