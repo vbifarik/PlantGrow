@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.plantgrow.screen.bed.BedScreen
+import com.example.plantgrow.screen.bedDetail.BedDetailScreen
 import com.example.plantgrow.screen.pest.PestScreen
 import com.example.plantgrow.screen.pestdetail.PestDetailScreen
 import com.example.plantgrow.screen.plant.PlantByCategoryScreen
@@ -19,36 +20,30 @@ fun NavGraph(navController: NavHostController) {
         navController = navController,
         startDestination = Screens.Bed.route
     ) {
+        // Главный экран грядок
         composable(route = Screens.Bed.route) {
             BedScreen(navController = navController)
         }
-        composable(route = Screens.Pest.route) {
-            PestScreen(navController = navController)
-        }
-        composable(route = Screens.PlantCategory.route) {
-            PlantCategoryScreen(navController = navController)
-        }
+
+        // Детальный экран грядки
         composable(
-            route = Screens.PlantByCategory.route,
+            route = Screens.BedDetail.route,
             arguments = listOf(
-                navArgument("genus") {
-                    type = NavType.StringType
-                }
-            )
-        ) { backStackEntry ->
-            val genus = backStackEntry.arguments?.getString("genus") ?: ""
-            PlantByCategoryScreen(navController = navController)
-        }
-        composable(
-            route = Screens.PlantDetail.route,
-            arguments = listOf(
-                navArgument("plantId") {
+                navArgument("bedId") {
                     type = NavType.IntType
                 }
             )
         ) { backStackEntry ->
-            PlantDetailScreen(navController = navController)
+            val bedId = backStackEntry.arguments?.getInt("bedId") ?: 0
+            BedDetailScreen(navController = navController)
         }
+
+        // Экран вредителей
+        composable(route = Screens.Pest.route) {
+            PestScreen(navController = navController)
+        }
+
+        // Детальный экран вредителя
         composable(
             route = Screens.PestDetail.route,
             arguments = listOf(
@@ -57,7 +52,57 @@ fun NavGraph(navController: NavHostController) {
                 }
             )
         ) { backStackEntry ->
+            val pestId = backStackEntry.arguments?.getInt("pestId") ?: 0
             PestDetailScreen(navController = navController)
+        }
+
+        // Экран категорий растений с bedId
+        composable(
+            route = Screens.PlantCategory.route,
+            arguments = listOf(
+                navArgument("bedId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            val bedId = backStackEntry.arguments?.getInt("bedId") ?: 0
+            PlantCategoryScreen(
+                navController = navController,
+                bedId = bedId
+            )
+        }
+
+        // Экран растений по категории с bedId
+        composable(
+            route = Screens.PlantByCategory.route,
+            arguments = listOf(
+                navArgument("bedId") {
+                    type = NavType.IntType
+                },
+                navArgument("genus") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val bedId = backStackEntry.arguments?.getInt("bedId") ?: 0
+            val genus = backStackEntry.arguments?.getString("genus") ?: ""
+            PlantByCategoryScreen(
+                navController = navController,
+                bedId = bedId
+            )
+        }
+
+        // Детальный экран растения
+        composable(
+            route = Screens.PlantDetail.route,
+            arguments = listOf(
+                navArgument("plantId") {
+                    type = NavType.IntType
+                }
+            )
+        ) { backStackEntry ->
+            val plantId = backStackEntry.arguments?.getInt("plantId") ?: 0
+            PlantDetailScreen(navController = navController)
         }
     }
 }

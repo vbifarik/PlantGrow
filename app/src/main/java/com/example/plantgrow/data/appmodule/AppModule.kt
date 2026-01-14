@@ -2,6 +2,7 @@ package com.example.plantgrow.data.appmodule
 
 import android.content.Context
 import com.example.plantgrow.data.bed.BedDao
+import com.example.plantgrow.data.bedplant.BedPlantDao
 import com.example.plantgrow.data.database.GardenDatabase
 import com.example.plantgrow.data.pest.PestDao
 import com.example.plantgrow.data.plant.PlantDao
@@ -36,9 +37,14 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideBedPlantDao(db: GardenDatabase): BedPlantDao = db.bedPlantDao()
+
+    @Provides
+    @Singleton
     fun provideGardenRepository(
         bedDao: BedDao,
         plantDao: PlantDao,
-        pestDao: PestDao
-    ): GardenRepository = GardenRepository(bedDao, plantDao, pestDao)
+        pestDao: PestDao,
+        bedPlantDao: BedPlantDao
+    ): GardenRepository = GardenRepository(bedDao, plantDao, pestDao, bedPlantDao)
 }

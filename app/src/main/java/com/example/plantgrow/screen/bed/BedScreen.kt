@@ -1,5 +1,6 @@
 package com.example.plantgrow.screen.bed
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -126,7 +127,8 @@ fun BedScreen(
             } else {
                 BedList(
                     beds = beds,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    navController = navController
                 )
             }
         }
@@ -233,7 +235,8 @@ fun EmptyBedScreen(modifier: Modifier = Modifier) {
 @Composable
 fun BedList(
     beds: List<Bed>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navController: NavController
 ) {
     LazyColumn(
         modifier = modifier,
@@ -241,16 +244,20 @@ fun BedList(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(beds, key = { it.id }) { bed ->
-            BedCard(bed = bed)
+            BedCard(bed = bed,
+                onClick = {
+                navController.navigate(Screens.BedDetail.createRoute(bed.id))
+            })
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BedCard(bed: Bed) {
+fun BedCard(bed: Bed, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFFE8F5E9)
         ),

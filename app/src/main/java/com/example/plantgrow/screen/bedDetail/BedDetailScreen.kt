@@ -1,4 +1,4 @@
-package com.example.plantgrow.screen.plantCategory
+package com.example.plantgrow.screen.bedDetail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,15 +21,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,23 +39,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.example.plantgrow.data.plant.PlantCategory
+import com.example.plantgrow.data.bedplant.BedPlantWithPlant
+import com.example.plantgrow.data.plant.Plant
 import com.example.plantgrow.navigation.Screens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlantCategoryScreen(
-    viewModel: PlantCategoryViewModel = hiltViewModel(),
-    navController: NavController,
-    bedId: Int
+fun BedDetailScreen(
+    viewModel: BedDetailViewModel = hiltViewModel(),
+    navController: NavController
 ) {
-    val plantCategories by viewModel.plantCategories.collectAsStateWithLifecycle(initialValue = emptyList())
+    val bed by viewModel.bed.collectAsState()
+    val bedPlants by viewModel.bedPlants.collectAsState(initial = emptyList())
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -67,7 +66,7 @@ fun PlantCategoryScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Категории растений",
+                        bed?.name ?: "Грядка",
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -77,29 +76,20 @@ fun PlantCategoryScreen(
                 )
             )
         },
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color(0xFF5E7A3C)
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    bed?.let {
+                        navController.navigate(Screens.PlantCategory.createRoute(it.id))
+                    }
+                },
+                containerColor = Color(0xFF5E7A3C),
+                contentColor = Color.White
             ) {
-                NavigationBarItem(
-                    icon = { Text("🌿", fontSize = 24.sp, color = Color.White) },
-                    label = { Text("Грядки", color = Color.White, fontSize = 12.sp) },
-                    selected = false,
-                    onClick = { navController.navigate(Screens.Bed.route) }
-                )
-
-                NavigationBarItem(
-                    icon = { Text("🐛", fontSize = 24.sp, color = Color.White) },
-                    label = { Text("Вредители", color = Color.White, fontSize = 12.sp) },
-                    selected = false,
-                    onClick = { navController.navigate(Screens.Pest.route) }
-                )
-
-                NavigationBarItem(
-                    icon = { Text("📁", fontSize = 24.sp, color = Color.White) },
-                    label = { Text("Категории", color = Color.White, fontSize = 12.sp) },
-                    selected = true,
-                    onClick = { }
+                Text(
+                    text = "Добавить",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -116,13 +106,26 @@ fun PlantCategoryScreen(
                 ) {
                     CircularProgressIndicator(color = Color(0xFF5E7A3C))
                 }
-            } else if (plantCategories.isEmpty()) {
-                EmptyCategoryScreen()
+            } else if (bed == null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Грядка не найдена")
+                }
+            } else if (bedPlants.isEmpty()) {
+                EmptyBedDetailScreen(
+                    bedName = bed!!.name,
+                    onAddClick = {
+                        navController.navigate(Screens.PlantCategory.route)
+                    }
+                )
             } else {
-                PlantCategoriesList(
-                    categories = plantCategories,
-                    onCategoryClick = { category ->
-                        navController.navigate(Screens.PlantByCategory.createRoute(bedId, category.genus))
+                BedPlantsList(
+                    bedPlants = bedPlants,
+                    onPlantClick = { plant ->
+                        // Переход к деталям растения
+                        navController.navigate(Screens.PlantDetail.createRoute(plant.id))
                     }
                 )
             }
@@ -131,35 +134,66 @@ fun PlantCategoryScreen(
 }
 
 @Composable
-fun PlantCategoriesList(
-    categories: List<PlantCategory>,
-    onCategoryClick: (PlantCategory) -> Unit
+fun EmptyBedDetailScreen(
+    bedName: String,
+    onAddClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "🪴",
+            fontSize = 80.sp,
+            modifier = Modifier.padding(16.dp)
+        )
+        Text(
+            text = "На грядке '$bedName' пока нет растений",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = "Нажмите + чтобы добавить первое растение",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun BedPlantsList(
+    bedPlants: List<BedPlantWithPlant>,
+    onPlantClick: (Plant) -> Unit
 ) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(categories, key = { it.genus }) { category ->
-            PlantCategoryCard(
-                category = category,
-                onClick = { onCategoryClick(category) }
+        items(bedPlants, key = { it.bedPlant.id }) { bedPlantWithPlant ->
+            BedPlantCard(
+                bedPlantWithPlant = bedPlantWithPlant,
+                onPlantClick = { onPlantClick(bedPlantWithPlant.plant) }
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlantCategoryCard(
-    category: PlantCategory,
-    onClick: () -> Unit
+fun BedPlantCard(
+    bedPlantWithPlant: BedPlantWithPlant,
+    onPlantClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onPlantClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Row(
             modifier = Modifier
@@ -167,7 +201,6 @@ fun PlantCategoryCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Иконка категории в кружке
             Box(
                 modifier = Modifier
                     .size(60.dp)
@@ -178,10 +211,6 @@ fun PlantCategoryCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = category.iconEmoji,
-                    fontSize = 30.sp
-                )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -190,7 +219,7 @@ fun PlantCategoryCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = category.genus,
+                    text = bedPlantWithPlant.plant.name,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1B5E20)
@@ -199,62 +228,19 @@ fun PlantCategoryCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "${category.plantCount} ${getPlantCountText(category.plantCount)}",
+                    text = "Количество: ${bedPlantWithPlant.bedPlant.quantity}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
 
-            // Стрелка для навигации
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFF5F5F5)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "→",
-                    fontSize = 20.sp,
-                    color = Color(0xFF5E7A3C)
-                )
+                if (bedPlantWithPlant.bedPlant.plantingDate.isNotEmpty()) {
+                    Text(
+                        text = "Посажено: ${bedPlantWithPlant.bedPlant.plantingDate}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
-    }
-}
-
-private fun getPlantCountText(count: Int): String {
-    return when {
-        count % 10 == 1 && count % 100 != 11 -> "растение"
-        count % 10 in 2..4 && count % 100 !in 12..14 -> "растения"
-        else -> "растений"
-    }
-}
-
-@Composable
-fun EmptyCategoryScreen() {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "📂",
-            fontSize = 80.sp,
-            modifier = Modifier.size(100.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Категории не найдены",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium
-        )
-        Text(
-            text = "Заполните базу данных растений",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
     }
 }
