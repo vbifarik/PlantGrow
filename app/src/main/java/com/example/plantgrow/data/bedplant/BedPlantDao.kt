@@ -44,6 +44,9 @@ interface BedPlantDao {
     fun getBedPlantsWithPlants(bedId: Int): Flow<List<BedPlantWithPlant>>
     @Query("SELECT mainGenus, COUNT(*) as plantCount FROM plants WHERE mainGenus != '' GROUP BY mainGenus ORDER BY mainGenus")
     suspend fun getGeneraWithCount(): List<GenusWithCount>
+
+    @Query("DELETE FROM bed_plants WHERE bedId = :bedId AND plantId = :plantId AND (posX IS NULL OR posX = 0)")
+    suspend fun deleteUnplantedBedPlant(bedId: Int, plantId: Int)
 }
 data class GenusWithCount(
     val mainGenus: String,

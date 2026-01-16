@@ -31,6 +31,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,6 +59,8 @@ fun BedScreen(
     val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
     var newBedName by remember { mutableStateOf("") }
+    var bedTileX by remember { mutableStateOf("10") }
+    var bedTileY by remember { mutableStateOf("10") }
 
     // Состояние для отображения статуса заполнения БД
     var showSuccessMessage by remember { mutableStateOf(false) }
@@ -139,20 +142,37 @@ fun BedScreen(
                 onDismissRequest = { showAddDialog = false },
                 title = { Text("Новая грядка") },
                 text = {
-                    OutlinedTextField(
-                        value = newBedName,
-                        onValueChange = { newBedName = it },
-                        label = { Text("Название грядки") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Column {
+                        OutlinedTextField(
+                            value = newBedName,
+                            onValueChange = { newBedName = it },
+                            label = { Text("Название грядки") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = bedTileX,
+                            onValueChange = { bedTileX = it },
+                            label = { Text("Размер по x") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = bedTileY,
+                            onValueChange = { bedTileY = it },
+                            label = { Text("Размер по н") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             if (newBedName.isNotBlank()) {
                                 scope.launch {
-                                    viewModel.addBed(newBedName)
+                                    viewModel.addBed(newBedName, bedTileX.toInt(), bedTileY.toInt())
                                     newBedName = ""
                                     showAddDialog = false
                                 }
@@ -344,7 +364,7 @@ fun BottomNavigationBarWithEmoji(navController: NavController) {
                 )
             },
             selected = false,
-            onClick = { navController.navigate(Screens.PlantCategory.route) }
+            onClick = { navController.navigate(Screens.PlantCategory.route) } // Без bedId
         )
     }
 }

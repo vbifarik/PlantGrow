@@ -19,11 +19,13 @@ class BedViewModel @Inject constructor(
 
     val beds: Flow<List<Bed>> = repository.getAllBeds()
 
-    fun addBed(name: String) {
+    fun addBed(name: String, tilesX: Int, tilesY: Int) {
         viewModelScope.launch {
             val bed = Bed(
                 name = name,
-                createdAt = getCurrentDate()
+                createdAt = getCurrentDate(),
+                tileX = tilesX,
+                tileY = tilesY
             )
             repository.insertBed(bed)
         }

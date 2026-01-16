@@ -56,7 +56,7 @@ import kotlinx.coroutines.launch
 fun PlantByCategoryScreen(
     viewModel: PlantByCategoryViewModel = hiltViewModel(),
     navController: NavController,
-    bedId: Int // Добавляем bedId
+    bedId: Int? // Добавляем bedId
 ) {
     val plants by viewModel.plants.collectAsStateWithLifecycle(initialValue = emptyList())
     var isLoading by remember { mutableStateOf(true) }
@@ -103,9 +103,11 @@ fun PlantByCategoryScreen(
                         navController.navigate(Screens.PlantDetail.createRoute(plant.id))
                     },
                     onAddToBedClick = { plant ->
-                        // Теперь у нас есть bedId, можно добавлять растение
-                        viewModel.addPlantToBed(bedId, plant.id)
-                    }
+                        bedId?.let {
+                            viewModel.addPlantToBed(it, plant.id)
+                        }
+                    },
+                    showAddButton = bedId != null // Показывать кнопку добавления только если есть bedId
                 )
             }
         }
@@ -116,7 +118,8 @@ fun PlantByCategoryScreen(
 fun PlantsByCategoryList(
     plants: List<Plant>,
     onPlantClick: (Plant) -> Unit,
-    onAddToBedClick: (Plant) -> Unit
+    onAddToBedClick: (Plant) -> Unit,
+    showAddButton: Boolean = true
 ) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -126,7 +129,8 @@ fun PlantsByCategoryList(
             PlantCard(
                 plant = plant,
                 onClick = { onPlantClick(plant) },
-                onAddToBedClick = { onAddToBedClick(plant) }
+                onAddToBedClick = { onAddToBedClick(plant) },
+                showAddButton = showAddButton
             )
         }
     }
@@ -137,7 +141,8 @@ fun PlantsByCategoryList(
 fun PlantCard(
     plant: Plant,
     onClick: () -> Unit,
-    onAddToBedClick: () -> Unit, // Новая функция для добавления на грядку
+    onAddToBedClick: () -> Unit,
+    showAddButton: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -213,7 +218,6 @@ fun PlantCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Кнопки действий
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -231,18 +235,20 @@ fun PlantCard(
                     Text("Подробнее", fontSize = 14.sp)
                 }
 
-                // Кнопка "Добавить на грядку"
-                Button(
-                    onClick = onAddToBedClick,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF5E7A3C)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("🌿", fontSize = 18.sp)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Добавить", fontSize = 14.sp)
+                // Кнопка "Добавить на грядку" (показываем только если есть bedId)
+                if (showAddButton) {
+                    Button(
+                        onClick = onAddToBedClick,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF5E7A3C)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("🌿", fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Добавить", fontSize = 14.sp)
+                    }
                 }
             }
         }

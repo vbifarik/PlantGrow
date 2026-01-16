@@ -35,6 +35,15 @@ interface PlantDao {
 
     @Query("SELECT mainGenus, COUNT(*) as plantCount FROM plants WHERE mainGenus != '' GROUP BY mainGenus ORDER BY mainGenus")
     suspend fun getGeneraWithCount(): List<GenusWithCount>
+
+    @Query("""
+        SELECT p.* FROM plants p
+        INNER JOIN bed_plants bp ON p.id = bp.plantId
+        WHERE bp.bedId = :bedId 
+        AND (bp.posX IS NULL OR bp.posX = 0)
+        ORDER BY p.name ASC
+    """)
+    fun getUnplantedPlants(bedId: Int): Flow<List<Plant>>
 }
 data class GenusWithCount(
     val mainGenus: String,

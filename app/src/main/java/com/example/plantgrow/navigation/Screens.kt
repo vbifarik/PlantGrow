@@ -9,10 +9,14 @@ sealed class Screens(val route: String) {
     object PestDetail : Screens("pest_detail/{pestId}") {
         fun createRoute(pestId: Int) = "pest_detail/$pestId"
     }
-    object PlantCategory : Screens("plant_category/{bedId}") {
+    object PlantCategory : Screens("plant_category") // Без bedId
+    object PlantCategoryWithBed : Screens("plant_category/{bedId}") { // С bedId
         fun createRoute(bedId: Int) = "plant_category/$bedId"
     }
-    object PlantByCategory : Screens("plant_by_category/{bedId}/{genus}") {
+    object PlantByCategory : Screens("plant_by_category/{genus}") {
+        fun createRoute(genus: String) = "plant_by_category/$genus"
+    }
+    object PlantByCategoryWithBed : Screens("plant_by_category/{bedId}/{genus}") {
         fun createRoute(bedId: Int, genus: String) = "plant_by_category/$bedId/$genus"
     }
     object PlantDetail : Screens("plant_detail/{plantId}") {

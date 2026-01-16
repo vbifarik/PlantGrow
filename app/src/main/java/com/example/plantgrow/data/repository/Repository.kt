@@ -62,7 +62,14 @@ class GardenRepository @Inject constructor(
     suspend fun getAllGenera(): List<String> = plantDao.getAllGenera()
     suspend fun getGeneraWithCount(): List<GenusWithCount> = plantDao.getGeneraWithCount()
 
+    fun getUnplantedPlants(bedId: Int): Flow<List<Plant>> {
+        return plantDao.getUnplantedPlants(bedId)
+    }
 
+    // Удалить запись растения без позиции
+    suspend fun removeUnplantedBedPlant(bedId: Int, plantId: Int) {
+        bedPlantDao.deleteUnplantedBedPlant(bedId, plantId)
+    }
     suspend fun populatePests(){
         val pests = listOf(
             Pest(

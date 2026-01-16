@@ -56,9 +56,14 @@ fun NavGraph(navController: NavHostController) {
             PestDetailScreen(navController = navController)
         }
 
-        // Экран категорий растений с bedId
+        // Экран категорий растений (без bedId - с главного меню)
+        composable(route = Screens.PlantCategory.route) {
+            PlantCategoryScreen(navController = navController, bedId = null)
+        }
+
+        // Экран категорий растений (с bedId - из детального экрана грядки)
         composable(
-            route = Screens.PlantCategory.route,
+            route = Screens.PlantCategoryWithBed.route,
             arguments = listOf(
                 navArgument("bedId") {
                     type = NavType.IntType
@@ -72,9 +77,25 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // Экран растений по категории с bedId
+        // Экран растений по категории (без bedId)
         composable(
             route = Screens.PlantByCategory.route,
+            arguments = listOf(
+                navArgument("genus") {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val genus = backStackEntry.arguments?.getString("genus") ?: ""
+            PlantByCategoryScreen(
+                navController = navController,
+                bedId = null // Без bedId
+            )
+        }
+
+        // Экран растений по категории (с bedId)
+        composable(
+            route = Screens.PlantByCategoryWithBed.route,
             arguments = listOf(
                 navArgument("bedId") {
                     type = NavType.IntType

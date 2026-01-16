@@ -53,7 +53,7 @@ import com.example.plantgrow.navigation.Screens
 fun PlantCategoryScreen(
     viewModel: PlantCategoryViewModel = hiltViewModel(),
     navController: NavController,
-    bedId: Int
+    bedId: Int?
 ) {
     val plantCategories by viewModel.plantCategories.collectAsStateWithLifecycle(initialValue = emptyList())
     var isLoading by remember { mutableStateOf(true) }
@@ -122,7 +122,11 @@ fun PlantCategoryScreen(
                 PlantCategoriesList(
                     categories = plantCategories,
                     onCategoryClick = { category ->
-                        navController.navigate(Screens.PlantByCategory.createRoute(bedId, category.genus))
+                        if (bedId != null) {
+                            navController.navigate(Screens.PlantByCategoryWithBed.createRoute(bedId, category.genus))
+                        } else {
+                            navController.navigate(Screens.PlantByCategory.createRoute(category.genus))
+                        }
                     }
                 )
             }
