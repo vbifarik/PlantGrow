@@ -47,8 +47,10 @@ interface BedPlantDao {
 
     @Query("DELETE FROM bed_plants WHERE bedId = :bedId AND plantId = :plantId AND (posX IS NULL OR posX = 0)")
     suspend fun deleteUnplantedBedPlant(bedId: Int, plantId: Int)
+
+    @Query("SELECT COALESCE(SUM(quantity), 0) FROM bed_plants WHERE bedId = :bedId AND plantId = :plantId AND posX IS NOT NULL")
+    suspend fun getPlantedCountOnGrid(bedId: Int, plantId: Int): Int
+
+    @Query("SELECT * FROM bed_plants WHERE bedId = :bedId AND plantId = :plantId")
+    suspend fun getAllBedPlantsForPlant(bedId: Int, plantId: Int): List<BedPlant>
 }
-data class GenusWithCount(
-    val mainGenus: String,
-    val plantCount: Int
-)

@@ -1,5 +1,6 @@
 package com.example.plantgrow.screen.bedDetail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,7 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -43,7 +46,7 @@ fun BedDetailScreen(
     val selectedPlant by viewModel.selectedPlant.collectAsState()
     val selectedTiles by viewModel.selectedTiles.collectAsState()
     val plantedPlants by viewModel.getPlantedPlantsOnGrid().collectAsState(initial = emptyMap())
-
+    val availableQuantity by viewModel.availableQuantity.collectAsState()
     var isLoading by remember { mutableStateOf(true) }
     var showGridView by remember { mutableStateOf(false) }
 
@@ -92,6 +95,7 @@ fun BedDetailScreen(
                 contentColor = Color.White
             ) {
                 Text(
+                    modifier = Modifier.padding(bottom = 15.dp),
                     text = "Добавить",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
@@ -127,6 +131,7 @@ fun BedDetailScreen(
                     selectedPlant = selectedPlant,
                     selectedTiles = selectedTiles,
                     plantedPlants = plantedPlants,
+                    availableQuantity = availableQuantity, // Передаем
                     onPlantSelect = { plant ->
                         viewModel.selectPlant(if (selectedPlant?.id == plant.id) null else plant)
                     },
@@ -167,6 +172,7 @@ fun BedGridViewWithSidebar(
     selectedPlant: Plant?,
     selectedTiles: Set<Pair<Int, Int>>,
     plantedPlants: Map<Pair<Int, Int>, Plant>,
+    availableQuantity: Int,
     onPlantSelect: (Plant) -> Unit,
     onTileClick: (Int, Int) -> Unit,
     onPlantClick: () -> Unit,
@@ -190,6 +196,7 @@ fun BedGridViewWithSidebar(
                 bedPlants = bedPlants,
                 selectedTiles = selectedTiles,
                 plantedPlants = plantedPlants,
+                availableQuantity = availableQuantity, // Передаем
                 onTileClick = onTileClick,
                 selectedPlant = selectedPlant,
                 onPlantClick = onPlantClick,
@@ -225,20 +232,22 @@ fun BedGridView(
     plantedPlants: Map<Pair<Int, Int>, Plant>,
     onTileClick: (Int, Int) -> Unit,
     selectedPlant: Plant?,
+    availableQuantity: Int, // Добавляем параметр
     onPlantClick: () -> Unit,
     onClearTiles: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val gridSizeX = bed.tileX
     val gridSizeY = bed.tileY
-    val tileSize = 60.dp
+    val tileSize = 50.dp
 
-    val scrollState = rememberScrollState()
+    val scrollStateH = rememberScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(8.dp),
+            .padding(8.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.Start
     ) {
         // Информация о выбранном растении
@@ -260,11 +269,51 @@ fun BedGridView(
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1B5E20)
                     )
-                    Text(
-                        text = "👇 Выберите клетки для посадки",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                    // Показываем информацию о количестве
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "📊 Доступно: $availableQuantity растений",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF4CAF50),
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "📌 Выбрано: ${selectedTiles.size} клеток",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF2196F3)
+                        )
+                    }
+
+                    // Предупреждение если выбрано слишком много клеток
+                    if (selectedTiles.size > availableQuantity) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "⚠️ Нельзя выбрать больше клеток чем растений!",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFF44336),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    if (availableQuantity > 0) {
+                        Text(
+                            text = "👇 Выберите клетки для посадки (максимум $availableQuantity)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Text(
+                            text = "⚠️ Нет доступных растений для посадки",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFF44336),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -273,8 +322,8 @@ fun BedGridView(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height((gridSizeY * tileSize.value + 50).dp)
-                .horizontalScroll(scrollState)
+                .height((gridSizeY * tileSize.value + 40).dp)
+                .horizontalScroll(scrollStateH)
                 .background(Color.White, RoundedCornerShape(8.dp))
                 .padding(8.dp)
                 .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(8.dp))
@@ -284,7 +333,7 @@ fun BedGridView(
             ) {
                 // Координаты X (горизонтальные)
                 Row(
-                    modifier = Modifier.padding(start = 25.dp)
+                    modifier = Modifier.padding(start = 20.dp)
                 ) {
                     for (x in 1..gridSizeX) {
                         Box(
@@ -295,7 +344,7 @@ fun BedGridView(
                         ) {
                             Text(
                                 text = "$x",
-                                fontSize = 12.sp,
+                                fontSize = 10.sp,
                                 color = Color.Gray,
                                 fontWeight = FontWeight.Bold
                             )
@@ -311,13 +360,13 @@ fun BedGridView(
                         // Координата Y (вертикальная)
                         Box(
                             modifier = Modifier
-                                .size(25.dp)
+                                .size(20.dp)
                                 .padding(end = 2.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "$y",
-                                fontSize = 12.sp,
+                                fontSize = 10.sp,
                                 color = Color.Gray,
                                 fontWeight = FontWeight.Bold
                             )
@@ -329,6 +378,12 @@ fun BedGridView(
                             val isSelected = selectedTiles.contains(coordinates)
                             val plantedPlant = plantedPlants[coordinates]
 
+                            // Проверяем, можно ли выбрать эту клетку
+                            val canSelect = selectedPlant != null &&
+                                    availableQuantity > 0 &&
+                                    selectedTiles.size < availableQuantity &&
+                                    !plantedPlants.containsKey(coordinates)
+
                             Box(
                                 modifier = Modifier
                                     .size(tileSize)
@@ -339,19 +394,22 @@ fun BedGridView(
                                             isSelected -> Color(0xFF8BC34A)
                                             else -> Color(0xFFF5F5F5)
                                         },
-                                        shape = RoundedCornerShape(8.dp)
+                                        shape = RoundedCornerShape(6.dp)
                                     )
                                     .border(
                                         width = 1.dp,
                                         color = when {
                                             plantedPlant != null -> Color(0xFF4CAF50)
                                             isSelected -> Color(0xFF689F38)
+                                            !canSelect && selectedPlant != null -> Color(0xFF9E9E9E)
                                             else -> Color(0xFFE0E0E0)
                                         },
-                                        shape = RoundedCornerShape(8.dp)
+                                        shape = RoundedCornerShape(6.dp)
                                     )
-                                    .clickable {
-                                        onTileClick(x, y)
+                                    .clickable(enabled = canSelect || isSelected) {
+                                        if (canSelect || isSelected) {
+                                            onTileClick(x, y)
+                                        }
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -363,23 +421,30 @@ fun BedGridView(
                                     ) {
                                         Text(
                                             text = "🌱",
-                                            fontSize = 16.sp
+                                            fontSize = 14.sp
                                         )
                                         Text(
-                                            text = plant.name.take(8) + if (plant.name.length > 8) "..." else "",
-                                            fontSize = 8.sp,
+                                            text = plant.name.take(6) + if (plant.name.length > 6) "..." else "",
+                                            fontSize = 7.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFF1B5E20),
                                             maxLines = 2,
-                                            lineHeight = 9.sp
+                                            lineHeight = 8.sp
                                         )
                                     }
                                 } ?: run {
-                                    if (isSelected && selectedPlant != null) {
+                                    if (isSelected) {
                                         Text(
                                             text = "✓",
-                                            fontSize = 20.sp,
+                                            fontSize = 18.sp,
                                             color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    } else if (!canSelect && selectedPlant != null) {
+                                        Text(
+                                            text = "✗",
+                                            fontSize = 14.sp,
+                                            color = Color(0xFF9E9E9E),
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -391,98 +456,147 @@ fun BedGridView(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Статистика и управление
-        Row(
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFF5F5F5)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column {
-                Text(
-                    text = "🧱 Грядка ${gridSizeX}x${gridSizeY}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF1B5E20),
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "🌱 Посажено: ${plantedPlants.size} клеток",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF4CAF50)
-                )
-                Text(
-                    text = "✅ Выбрано клеток: ${selectedTiles.size}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.End
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (selectedTiles.isNotEmpty()) {
+                Column {
                     Text(
-                        text = "🗑️ Очистить выбор",
+                        text = "🧱 Грядка ${gridSizeX}x${gridSizeY}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF5E7A3C),
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .clickable { onClearTiles() }
-                            .padding(4.dp)
+                        color = Color(0xFF1B5E20),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "🌱 Посажено: ${plantedPlants.size} клеток",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF4CAF50)
+                    )
+                    Text(
+                        text = "✅ Выбрано: ${selectedTiles.size}/${availableQuantity} клеток",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                // Инструкция по прокрутке
-                Text(
-                    text = "↔️ Прокручивайте в стороны",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    fontSize = 10.sp
-                )
+                if (selectedTiles.isNotEmpty()) {
+                    Button(
+                        onClick = onClearTiles,
+                        modifier = Modifier.height(36.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF44336),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(text = "🗑️", fontSize = 14.sp)
+                            Text(
+                                text = "Очистить",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // Кнопка посадки
-        if (selectedPlant != null && selectedTiles.isNotEmpty()) {
+        // Кнопка посадки - показываем только если можно посадить
+        if (selectedPlant != null && selectedTiles.isNotEmpty() && selectedTiles.size <= availableQuantity && availableQuantity > 0) {
             Spacer(modifier = Modifier.height(12.dp))
-            Box(
+            Button(
+                onClick = onPlantClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF5E7A3C))
-                    .clickable(onClick = onPlantClick),
-                contentAlignment = Alignment.Center
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF5E7A3C),
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(8.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
+                enabled = selectedTiles.isNotEmpty() && selectedTiles.size <= availableQuantity
             ) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 ) {
                     Text(
                         text = "🌱",
-                        fontSize = 20.sp,
-                        color = Color.White
+                        fontSize = 20.sp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "ПОСАДИТЬ '${selectedPlant.name.take(15)}${if (selectedPlant.name.length > 15) "..." else ""}'",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "на ${selectedTiles.size} из $availableQuantity клеток",
+                            fontSize = 10.sp,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+        } else if (selectedPlant != null && selectedTiles.size > availableQuantity) {
+            // Показываем предупреждение если выбрано слишком много клеток
+            Spacer(modifier = Modifier.height(12.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFFFEBEE)
+                ),
+                border = BorderStroke(1.dp, Color(0xFFF44336))
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = "Посадить '${selectedPlant.name}' на ${selectedTiles.size} клеток",
-                        color = Color.White,
+                        text = "⚠️ Выбрано слишком много клеток! У вас только $availableQuantity растений",
+                        color = Color(0xFFD32F2F),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 12.sp,
+                        maxLines = 2,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
         }
 
-        // Легенда (опционально, можно убрать если места мало)
-        if (gridSizeX <= 10) { // Показываем легенду только если сетка небольшая
-            Spacer(modifier = Modifier.height(16.dp))
+        // Легенда
+        if (gridSizeX <= 10) {
+            Spacer(modifier = Modifier.height(12.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = Color(0xFFF9F9F9)
-                )
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)
@@ -495,7 +609,7 @@ fun BedGridView(
                     )
                     Row(
                         modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         LegendItem(
                             color = Color(0xFFF5F5F5),
@@ -512,13 +626,17 @@ fun BedGridView(
                             borderColor = Color(0xFF4CAF50),
                             text = "Посажена"
                         )
+                        LegendItem(
+                            color = Color(0xFFF5F5F5),
+                            borderColor = Color(0xFF9E9E9E),
+                            text = "Заблок."
+                        )
                     }
                 }
             }
         }
     }
 }
-
 @Composable
 fun LegendItem(
     color: Color,

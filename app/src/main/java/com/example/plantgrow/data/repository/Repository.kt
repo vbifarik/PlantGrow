@@ -65,7 +65,12 @@ class GardenRepository @Inject constructor(
     fun getUnplantedPlants(bedId: Int): Flow<List<Plant>> {
         return plantDao.getUnplantedPlants(bedId)
     }
-
+    suspend fun getPlantedCountOnGrid(bedId: Int, plantId: Int): Int {
+        return bedPlantDao.getPlantedCountOnGrid(bedId, plantId)
+    }
+    suspend fun getAllBedPlantsForPlant(bedId: Int, plantId: Int): List<BedPlant> {
+        return bedPlantDao.getAllBedPlantsForPlant(bedId, plantId)
+    }
     // Удалить запись растения без позиции
     suspend fun removeUnplantedBedPlant(bedId: Int, plantId: Int) {
         bedPlantDao.deleteUnplantedBedPlant(bedId, plantId)

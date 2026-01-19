@@ -37,11 +37,9 @@ interface PlantDao {
     suspend fun getGeneraWithCount(): List<GenusWithCount>
 
     @Query("""
-        SELECT p.* FROM plants p
+        SELECT DISTINCT p.* FROM plants p
         INNER JOIN bed_plants bp ON p.id = bp.plantId
-        WHERE bp.bedId = :bedId 
-        AND (bp.posX IS NULL OR bp.posX = 0)
-        ORDER BY p.name ASC
+        WHERE bp.bedId = :bedId AND bp.posX IS NULL AND bp.quantity > 0
     """)
     fun getUnplantedPlants(bedId: Int): Flow<List<Plant>>
 }
