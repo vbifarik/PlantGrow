@@ -21,8 +21,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -31,7 +29,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -113,9 +110,6 @@ fun BedScreen(
                 Text("+", fontSize = 24.sp, color = Color.White)
             }
         },
-        bottomBar = {
-            BottomNavigationBarWithEmoji(navController = navController)
-        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -310,60 +304,5 @@ fun BedCard(bed: Bed, onClick: () -> Unit) {
                 )
             }
         }
-    }
-}
-
-@Composable
-fun BottomNavigationBarWithEmoji(navController: NavController) {
-    NavigationBar(
-        containerColor = Color(0xFF5E7A3C)
-    ) {
-        // Грядки
-        NavigationBarItem(
-            icon = {
-                Text("🌿", fontSize = 24.sp, color = Color.White)
-            },
-            label = {
-                Text(
-                    "Грядки",
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-            },
-            selected = true,
-            onClick = { /* Уже на этом экране */ }
-        )
-
-        // Вредители
-        NavigationBarItem(
-            icon = {
-                Text("🐛", fontSize = 24.sp, color = Color.White)
-            },
-            label = {
-                Text(
-                    "Вредители",
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-            },
-            selected = false,
-            onClick = { navController.navigate(Screens.Pest.route) }
-        )
-
-        // Растения
-        NavigationBarItem(
-            icon = {
-                Text("🌱", fontSize = 24.sp, color = Color.White)
-            },
-            label = {
-                Text(
-                    "Растения",
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-            },
-            selected = false,
-            onClick = { navController.navigate(Screens.PlantCategory.route) } // Без bedId
-        )
     }
 }

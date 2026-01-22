@@ -73,6 +73,7 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.androidx.webgpu)
     kapt(libs.hilt.compiler)
 
     // Room

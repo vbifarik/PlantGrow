@@ -1,6 +1,7 @@
 package com.example.plantgrow.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -15,10 +16,14 @@ import com.example.plantgrow.screen.plantCategory.PlantCategoryScreen
 import com.example.plantgrow.screen.plantDetails.PlantDetailScreen
 
 @Composable
-fun NavGraph(navController: NavHostController) {
+fun NavGraph(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
     NavHost(
         navController = navController,
-        startDestination = Screens.Bed.route
+        startDestination = Screens.Bed.route,
+        modifier = modifier
     ) {
         // Главный экран грядок
         composable(route = Screens.Bed.route) {

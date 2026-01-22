@@ -13,8 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,20 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import androidx.room.util.TableInfo
 import com.example.plantgrow.data.pest.Pest
 import com.example.plantgrow.navigation.Screens
-import com.example.plantgrow.screen.bed.BedCard
-import com.example.plantgrow.screen.bed.BottomNavigationBarWithEmoji
-import com.example.plantgrow.ui.theme.PlantGrowTheme
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,9 +79,6 @@ fun PestScreen(viewModel: PestViewModel = hiltViewModel(), navController: NavCon
                 }
             )
         },
-        bottomBar = {
-            BottomNavigationBarWithEmoji(navController = navController)
-        }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)){
             Row(modifier = Modifier.fillMaxWidth()) {

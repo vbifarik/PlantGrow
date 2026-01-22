@@ -22,8 +22,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -77,32 +75,6 @@ fun PlantCategoryScreen(
                 )
             )
         },
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color(0xFF5E7A3C)
-            ) {
-                NavigationBarItem(
-                    icon = { Text("🌿", fontSize = 24.sp, color = Color.White) },
-                    label = { Text("Грядки", color = Color.White, fontSize = 12.sp) },
-                    selected = false,
-                    onClick = { navController.navigate(Screens.Bed.route) }
-                )
-
-                NavigationBarItem(
-                    icon = { Text("🐛", fontSize = 24.sp, color = Color.White) },
-                    label = { Text("Вредители", color = Color.White, fontSize = 12.sp) },
-                    selected = false,
-                    onClick = { navController.navigate(Screens.Pest.route) }
-                )
-
-                NavigationBarItem(
-                    icon = { Text("📁", fontSize = 24.sp, color = Color.White) },
-                    label = { Text("Категории", color = Color.White, fontSize = 12.sp) },
-                    selected = true,
-                    onClick = { }
-                )
-            }
-        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
