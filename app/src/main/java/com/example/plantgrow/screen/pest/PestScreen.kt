@@ -11,13 +11,28 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,26 +43,81 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import androidx.room.util.TableInfo
 import com.example.plantgrow.data.pest.Pest
 import com.example.plantgrow.navigation.Screens
 import com.example.plantgrow.screen.bed.BedCard
+import com.example.plantgrow.screen.bed.BottomNavigationBarWithEmoji
+import com.example.plantgrow.ui.theme.PlantGrowTheme
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PestScreen(viewModel: PestViewModel = hiltViewModel(), navController: NavController) {
     val pests by viewModel.pests.collectAsStateWithLifecycle(initialValue = emptyList())
-    Column{
-        Button(onClick = { viewModel.populatePestDatabase() }) { }
-        LazyColumn(modifier = Modifier.fillMaxSize()
-        ) {
-            items(pests, key = { it.id }) { pest ->
-                PestCard(pest = pest,
-                    onClick = {
-                    navController.navigate(Screens.PestDetail.createRoute(pest.id))
-                })
+    val message = remember { mutableStateOf("") }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Вредители",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF5E7A3C),
+                    titleContentColor = Color.White
+                ),
+                actions = {
+                    IconButton(onClick = {navController.popBackStack()}) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Вернуться назад")
+                    }
+                    Button(
+                        onClick = {
+                            viewModel.populatePestDatabase()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF8BC34A)
+                        ),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Добавить вредителей", fontSize = 14.sp)
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            BottomNavigationBarWithEmoji(navController = navController)
+        }
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues)){
+            Row(modifier = Modifier.fillMaxWidth()) {
+                TextField(
+                    modifier = Modifier.fillMaxWidth()
+                        .weight(10f),
+                    value = message.value,
+                    onValueChange = {newText -> message.value = newText})
+                IconButton(onClick = {viewModel.updateSearchQuery(message.value)},
+                    modifier = Modifier.weight(2f),) {
+                    Icon(Icons.Filled.Search, contentDescription = "Поиск вредителей")
+                }
+            }
+
+            LazyColumn(modifier = Modifier.fillMaxSize()
+            ) {
+                items(pests, key = { it.id }) { pest ->
+                    PestCard(pest = pest,
+                        onClick = {
+                            navController.navigate(Screens.PestDetail.createRoute(pest.id))
+                        }
+                    )
+                }
             }
         }
     }
+
 }
 @Composable
 fun PestCard(

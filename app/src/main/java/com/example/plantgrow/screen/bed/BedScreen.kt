@@ -62,7 +62,6 @@ fun BedScreen(
     var bedTileX by remember { mutableStateOf("10") }
     var bedTileY by remember { mutableStateOf("10") }
 
-    // Состояние для отображения статуса заполнения БД
     var showSuccessMessage by remember { mutableStateOf(false) }
     var showErrorMessage by remember { mutableStateOf(false) }
 

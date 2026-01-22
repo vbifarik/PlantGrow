@@ -30,22 +30,28 @@ class BedDetailViewModel @Inject constructor(
     private val _bed = MutableStateFlow<Bed?>(null)
     val bed: StateFlow<Bed?> = _bed
 
-    // Поток для непосаженных растений (без posX)
-    val unplantedPlants: Flow<List<Plant>> = repository.getUnplantedPlants(bedId)
+    // Поток для всех растений на грядке
+    val bedPlants: Flow<List<BedPlantWithPlant>> = repository.getBedPlantsWithPlants(bedId)
 
-    // Выделенное растение для посадки
-    private val _selectedPlant = MutableStateFlow<Plant?>(null)
-    val selectedPlant: StateFlow<Plant?> = _selectedPlant
+    // Поток для непосаженных растений (без posX) с их количеством
+    val unplantedPlantsWithQuantity: Flow<List<Pair<Plant, Int>>> = bedPlants.map { bedPlantList ->
+        bedPlantList
+            .filter { it.bedPlant.posX == null && it.bedPlant.quantity > 0 }
+            .groupBy { it.plant.id }
+            .map { (_, plantsWithSameId) ->
+                val plant = plantsWithSameId.first().plant
+                val totalQuantity = plantsWithSameId.sumOf { it.bedPlant.quantity }
+                plant to totalQuantity
+            }
+    }
+
+    // Выделенное растение для посадки с количеством
+    private val _selectedPlantWithQuantity = MutableStateFlow<Pair<Plant, Int>?>(null)
+    val selectedPlantWithQuantity: StateFlow<Pair<Plant, Int>?> = _selectedPlantWithQuantity
 
     // Выделенные клетки на сетке
     private val _selectedTiles = MutableStateFlow<Set<Pair<Int, Int>>>(emptySet())
     val selectedTiles: StateFlow<Set<Pair<Int, Int>>> = _selectedTiles
-
-    // Количество доступных растений для текущего выбранного растения
-    private val _availableQuantity = MutableStateFlow(0)
-    val availableQuantity: StateFlow<Int> = _availableQuantity
-
-    val bedPlants: Flow<List<BedPlantWithPlant>> = repository.getBedPlantsWithPlants(bedId)
 
     init {
         loadBed()
@@ -68,35 +74,23 @@ class BedDetailViewModel @Inject constructor(
         }
     }
 
-    // Выбрать растение для посадки
-    fun selectPlant(plant: Plant?) {
-        _selectedPlant.value = plant
+    // Выбрать растение для посадки с его количеством
+    fun selectPlant(plantWithQuantity: Pair<Plant, Int>?) {
+        _selectedPlantWithQuantity.value = plantWithQuantity
         _selectedTiles.value = emptySet()
-
-        if (plant != null) {
-            viewModelScope.launch {
-                calculateAvailableQuantity(plant.id)
-            }
-        } else {
-            _availableQuantity.value = 0
-        }
     }
 
     // Выбрать клетку на сетке с проверкой количества
     fun selectTile(x: Int, y: Int) {
         val currentTiles = _selectedTiles.value
-        val selectedPlantValue = _selectedPlant.value
+        val selectedPlant = _selectedPlantWithQuantity.value
 
-        if (selectedPlantValue == null) {
+        if (selectedPlant == null) {
             // Нельзя выбрать клетку без выбранного растения
             return
         }
 
-        val available = _availableQuantity.value
-        if (available <= 0) {
-            // Нет доступных растений для посадки
-            return
-        }
+        val availableQuantity = selectedPlant.second
 
         if (currentTiles.contains(Pair(x, y))) {
             // Убираем клетку из выбранных
@@ -105,7 +99,7 @@ class BedDetailViewModel @Inject constructor(
             _selectedTiles.value = newTiles
         } else {
             // Добавляем клетку, если не превышен лимит
-            if (currentTiles.size < available) {
+            if (currentTiles.size < availableQuantity) {
                 val newTiles = currentTiles.toMutableSet()
                 newTiles.add(Pair(x, y))
                 _selectedTiles.value = newTiles
@@ -122,22 +116,21 @@ class BedDetailViewModel @Inject constructor(
     // Посадить растение на выбранные клетки
     fun plantSelectedPlant() {
         viewModelScope.launch {
-            val plant = _selectedPlant.value
+            val selectedPlant = _selectedPlantWithQuantity.value
             val tiles = _selectedTiles.value
 
-            if (plant != null && tiles.isNotEmpty()) {
+            if (selectedPlant != null && tiles.isNotEmpty()) {
+                val plant = selectedPlant.first
+                val availableQuantity = selectedPlant.second
+
                 // Проверяем, что выбранное количество не превышает доступное
-                val available = _availableQuantity.value
-                if (tiles.size > available) {
-                    // Нельзя посадить больше чем есть доступно
+                if (tiles.size > availableQuantity) {
                     return@launch
                 }
 
-                // Получаем ВСЕ записи этого растения на грядке
-                val allBedPlants = repository.getAllBedPlantsForPlant(bedId, plant.id)
-
-                // Находим запись(и) без позиции
-                val unplantedRecords = allBedPlants.filter { it.posX == null }
+                // Получаем ВСЕ записи этого растения без позиции
+                val unplantedRecords = repository.getAllBedPlantsForPlant(bedId, plant.id)
+                    .filter { it.posX == null && it.quantity > 0 }
 
                 if (unplantedRecords.isNotEmpty()) {
                     // У нас есть растения без позиции для посадки
@@ -177,46 +170,25 @@ class BedDetailViewModel @Inject constructor(
                     }
                 }
 
-                // Сбрасываем выбор и пересчитываем доступное количество
-                _selectedPlant.value = null
+                // Сбрасываем выбор
+                _selectedPlantWithQuantity.value = null
                 _selectedTiles.value = emptySet()
-                _availableQuantity.value = 0
             }
         }
-    }
-
-    // Рассчитать доступное количество для растения
-    private suspend fun calculateAvailableQuantity(plantId: Int) {
-        // Получаем ВСЕ записи этого растения на грядке (и с позицией и без)
-        val allBedPlants = repository.getAllBedPlantsForPlant(bedId, plantId)
-
-        // Общее количество всех растений этого типа на грядке
-        val totalQuantity = allBedPlants.sumOf { it.quantity }
-
-        // Количество уже посаженных на сетке (с позицией)
-        val plantedCount = allBedPlants
-            .filter { it.posX != null }
-            .sumOf { it.quantity }
-
-        // Доступное количество = общее - уже посаженные
-        val available = totalQuantity - plantedCount
-
-        _availableQuantity.value = maxOf(0, available) // Не может быть отрицательным
     }
 
     // Добавить новое растение на грядку (без позиции)
     fun addPlantToBed(plantId: Int, quantity: Int = 1, notes: String = "") {
         viewModelScope.launch {
             // Проверяем, есть ли уже такое растение без позиции
-            val existingPlant = repository.getBedPlant(bedId, plantId)
+            val existingPlants = repository.getAllBedPlantsForPlant(bedId, plantId)
+                .filter { it.posX == null }
 
-            if (existingPlant != null && existingPlant.posX == null) {
-                // Увеличиваем количество у существующей записи
+            if (existingPlants.isNotEmpty()) {
+                // Берем первую запись без позиции и увеличиваем количество
+                val firstRecord = existingPlants.first()
                 repository.updateBedPlant(
-                    existingPlant.copy(
-                        quantity = existingPlant.quantity + quantity,
-                        notes = if (notes.isNotEmpty()) notes else existingPlant.notes
-                    )
+                    firstRecord.copy(quantity = firstRecord.quantity + quantity)
                 )
             } else {
                 // Создаем новую запись
@@ -231,11 +203,6 @@ class BedDetailViewModel @Inject constructor(
                         posY = null
                     )
                 )
-            }
-
-            // Если это выбранное растение, пересчитываем доступное количество
-            if (_selectedPlant.value?.id == plantId) {
-                calculateAvailableQuantity(plantId)
             }
         }
     }
@@ -266,23 +233,12 @@ class BedDetailViewModel @Inject constructor(
         }
     }
 
-    // Получить количество доступных для посадки растений
-    suspend fun getAvailableQuantityForPlant(plantId: Int): Int {
-        val totalQuantity = repository.getPlantQuantityOnBed(bedId, plantId)
-        val plantedCount = repository.getPlantedCountOnGrid(bedId, plantId)
-        return totalQuantity - plantedCount
-    }
-
     private fun getCurrentDate(): String {
         val formatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
         return formatter.format(Date())
     }
 
-    suspend fun isPlantPlantedOnBed(plantId: Int): Boolean {
-        return repository.isPlantPlantedOnBed(bedId, plantId)
-    }
-
-    suspend fun getPlantQuantityOnBed(plantId: Int): Int {
-        return repository.getPlantQuantityOnBed(bedId, plantId)
-    }
+    // Вспомогательные методы для UI
+    fun getSelectedPlant(): Plant? = _selectedPlantWithQuantity.value?.first
+    fun getAvailableQuantity(): Int = _selectedPlantWithQuantity.value?.second ?: 0
 }

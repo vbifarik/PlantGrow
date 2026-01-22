@@ -1,6 +1,13 @@
 package com.example.plantgrow.screen.bedDetail
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +19,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -21,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,11 +49,15 @@ fun BedDetailScreen(
 ) {
     val bed by viewModel.bed.collectAsState()
     val bedPlants by viewModel.bedPlants.collectAsState(initial = emptyList())
-    val unplantedPlants by viewModel.unplantedPlants.collectAsState(initial = emptyList())
-    val selectedPlant by viewModel.selectedPlant.collectAsState()
+    val unplantedPlantsWithQuantity by viewModel.unplantedPlantsWithQuantity.collectAsState(initial = emptyList())
+    val selectedPlantWithQuantity by viewModel.selectedPlantWithQuantity.collectAsState()
     val selectedTiles by viewModel.selectedTiles.collectAsState()
     val plantedPlants by viewModel.getPlantedPlantsOnGrid().collectAsState(initial = emptyMap())
-    val availableQuantity by viewModel.availableQuantity.collectAsState()
+
+    // Извлекаем растение и количество
+    val selectedPlant = selectedPlantWithQuantity?.first
+    val availableQuantity = selectedPlantWithQuantity?.second ?: 0
+
     var isLoading by remember { mutableStateOf(true) }
     var showGridView by remember { mutableStateOf(false) }
 
@@ -123,17 +134,22 @@ fun BedDetailScreen(
                     Text("Грядка не найдена")
                 }
             } else if (showGridView) {
-                // Отображаем грядку в виде сетки с боковой панелью
-                BedGridViewWithSidebar(
+                // Отображаем грядку в виде сетки с выдвижной панелью
+                BedGridViewWithSlidingPanel(
                     bed = bed!!,
                     bedPlants = bedPlants,
-                    unplantedPlants = unplantedPlants,
+                    unplantedPlantsWithQuantity = unplantedPlantsWithQuantity,
                     selectedPlant = selectedPlant,
+                    availableQuantity = availableQuantity,
                     selectedTiles = selectedTiles,
                     plantedPlants = plantedPlants,
-                    availableQuantity = availableQuantity, // Передаем
-                    onPlantSelect = { plant ->
-                        viewModel.selectPlant(if (selectedPlant?.id == plant.id) null else plant)
+                    onPlantSelect = { plantWithQuantity ->
+                        val current = viewModel.selectedPlantWithQuantity.value
+                        if (current?.first?.id == plantWithQuantity.first.id) {
+                            viewModel.selectPlant(null)
+                        } else {
+                            viewModel.selectPlant(plantWithQuantity)
+                        }
                     },
                     onTileClick = { x, y ->
                         viewModel.selectTile(x, y)
@@ -157,6 +173,9 @@ fun BedDetailScreen(
                     bedPlants = bedPlants,
                     onPlantClick = { plant ->
                         navController.navigate(Screens.PlantDetail.createRoute(plant.id))
+                    },
+                    onDeleteClick = { bedPlantId ->
+                        viewModel.removePlantFromBed(bedPlantId)
                     }
                 )
             }
@@ -165,60 +184,175 @@ fun BedDetailScreen(
 }
 
 @Composable
-fun BedGridViewWithSidebar(
+fun BedGridViewWithSlidingPanel(
     bed: Bed,
     bedPlants: List<BedPlantWithPlant>,
-    unplantedPlants: List<Plant>,
+    unplantedPlantsWithQuantity: List<Pair<Plant, Int>>,
     selectedPlant: Plant?,
+    availableQuantity: Int,
     selectedTiles: Set<Pair<Int, Int>>,
     plantedPlants: Map<Pair<Int, Int>, Plant>,
-    availableQuantity: Int,
-    onPlantSelect: (Plant) -> Unit,
+    onPlantSelect: (Pair<Plant, Int>) -> Unit,
     onTileClick: (Int, Int) -> Unit,
     onPlantClick: () -> Unit,
     onClearTiles: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    var isPanelVisible by remember { mutableStateOf(true) }
+    val panelWidth by animateDpAsState(
+        targetValue = if (isPanelVisible) 300.dp else 0.dp,
+        animationSpec = tween(durationMillis = 300)
+    )
+
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(8.dp)
+            .background(Color.White)
     ) {
-        // Основная сетка грядки с горизонтальной прокруткой (75%)
+        // Основная сетка грядки - занимает всё пространство
+        BedGridView(
+            bed = bed,
+            bedPlants = bedPlants,
+            selectedTiles = selectedTiles,
+            plantedPlants = plantedPlants,
+            availableQuantity = availableQuantity,
+            onTileClick = onTileClick,
+            selectedPlant = selectedPlant,
+            onPlantClick = onPlantClick,
+            onClearTiles = onClearTiles,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(end = if (isPanelVisible) 300.dp else 0.dp)
+        )
+
+        // Панель растений - поверх сетки
         Box(
             modifier = Modifier
-                .weight(3f)
                 .fillMaxHeight()
-                .padding(end = 8.dp)
+                .width(panelWidth)
+                .align(Alignment.TopEnd)
+                .zIndex(1f)
+                .background(
+                    color = Color(0xFFF5F5F5),
+                    shape = RoundedCornerShape(
+                        topStart = 12.dp,
+                        bottomStart = 12.dp
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFFE0E0E0),
+                    shape = RoundedCornerShape(
+                        topStart = 12.dp,
+                        bottomStart = 12.dp
+                    )
+                )
+                .animateContentSize()
         ) {
-            BedGridView(
-                bed = bed,
-                bedPlants = bedPlants,
-                selectedTiles = selectedTiles,
-                plantedPlants = plantedPlants,
-                availableQuantity = availableQuantity, // Передаем
-                onTileClick = onTileClick,
-                selectedPlant = selectedPlant,
-                onPlantClick = onPlantClick,
-                onClearTiles = onClearTiles
-            )
+            if (isPanelVisible) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp)
+                ) {
+                    // Заголовок панели
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF5E7A3C))
+                            .padding(vertical = 12.dp, horizontal = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val totalPlants = unplantedPlantsWithQuantity.sumOf { it.second }
+                        Text(
+                            text = "🌱 Не посажены ($totalPlants шт.)",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+
+                    if (unplantedPlantsWithQuantity.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "🎉",
+                                    fontSize = 32.sp
+                                )
+                                Text(
+                                    text = "Все растения посажены!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(unplantedPlantsWithQuantity, key = { it.first.id }) { (plant, quantity) ->
+                                UnplantedPlantItem(
+                                    plant = plant,
+                                    quantity = quantity,
+                                    isSelected = selectedPlant?.id == plant.id,
+                                    onClick = { onPlantSelect(plant to quantity) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        // Боковая панель с растениями (25%)
+        // Кнопка переключения панели - всегда видна
         Box(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFF5F5F5))
-                .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp))
-                .padding(8.dp)
+                .align(Alignment.CenterEnd)
+                .offset(x = if (isPanelVisible) (-300).dp else 0.dp)
+                .zIndex(2f)
         ) {
-            UnplantedPlantsPanel(
-                unplantedPlants = unplantedPlants,
-                selectedPlant = selectedPlant,
-                onPlantSelect = onPlantSelect
-            )
+            FloatingActionButton(
+                onClick = { isPanelVisible = !isPanelVisible },
+                containerColor = Color(0xFF5E7A3C),
+                contentColor = Color.White,
+                modifier = Modifier
+                    .size(width = 48.dp, height = 64.dp) // Увеличиваем высоту для текста
+                    .shadow(4.dp, RoundedCornerShape(8.dp)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    // Показываем стрелку в виде текста
+                    Text(
+                        text = if (isPanelVisible) "◀" else "▶",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    // Текстовое описание
+                    Text(
+                        text = if (isPanelVisible) "Скрыть" else "Растения",
+                        fontSize = 10.sp,
+                        maxLines = 2,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 10.sp
+                    )
+                }
+            }
         }
     }
 }
@@ -232,7 +366,7 @@ fun BedGridView(
     plantedPlants: Map<Pair<Int, Int>, Plant>,
     onTileClick: (Int, Int) -> Unit,
     selectedPlant: Plant?,
-    availableQuantity: Int, // Добавляем параметр
+    availableQuantity: Int,
     onPlantClick: () -> Unit,
     onClearTiles: () -> Unit,
     modifier: Modifier = Modifier
@@ -246,7 +380,7 @@ fun BedGridView(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(8.dp)
+            .padding(16.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.Start
     ) {
@@ -637,6 +771,7 @@ fun BedGridView(
         }
     }
 }
+
 @Composable
 fun LegendItem(
     color: Color,
@@ -662,75 +797,9 @@ fun LegendItem(
 }
 
 @Composable
-fun UnplantedPlantsPanel(
-    unplantedPlants: List<Plant>,
-    selectedPlant: Plant?,
-    onPlantSelect: (Plant) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxSize()
-    ) {
-        // Заголовок панели
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF5E7A3C))
-                .padding(vertical = 12.dp, horizontal = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🌱 Не посажены (${unplantedPlants.size})",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-        }
-
-        if (unplantedPlants.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "🎉",
-                        fontSize = 32.sp
-                    )
-                    Text(
-                        text = "Все растения посажены!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(unplantedPlants, key = { it.id }) { plant ->
-                    UnplantedPlantItem(
-                        plant = plant,
-                        isSelected = selectedPlant?.id == plant.id,
-                        onClick = { onPlantSelect(plant) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun UnplantedPlantItem(
     plant: Plant,
+    quantity: Int,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -749,28 +818,46 @@ fun UnplantedPlantItem(
         Column(
             modifier = Modifier.padding(12.dp)
         ) {
-            Text(
-                text = plant.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.White else Color(0xFF1B5E20),
-                maxLines = 2
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = plant.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) Color.White else Color(0xFF1B5E20),
+                        maxLines = 2
+                    )
 
-            plant.mainGenus?.let { genus ->
+                    plant.mainGenus?.let { genus ->
+                        Text(
+                            text = genus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isSelected) Color.White.copy(alpha = 0.9f)
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                // Показываем количество
                 Text(
-                    text = genus,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isSelected) Color.White.copy(alpha = 0.9f)
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    text = "×$quantity",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) Color.White else Color(0xFF4CAF50)
                 )
             }
 
             if (isSelected) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "✔ Выбрано для посадки",
+                    text = "✔ Доступно для посадки: $quantity растений",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.9f)
                 )
@@ -779,7 +866,6 @@ fun UnplantedPlantItem(
     }
 }
 
-// Остальные функции остаются без изменений...
 @Composable
 fun EmptyBedDetailScreen(
     bedName: String,
@@ -811,7 +897,8 @@ fun EmptyBedDetailScreen(
 @Composable
 fun BedPlantsList(
     bedPlants: List<BedPlantWithPlant>,
-    onPlantClick: (Plant) -> Unit
+    onPlantClick: (Plant) -> Unit,
+    onDeleteClick: (Int) -> Unit
 ) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -820,7 +907,8 @@ fun BedPlantsList(
         items(bedPlants, key = { it.bedPlant.id }) { bedPlantWithPlant ->
             BedPlantCard(
                 bedPlantWithPlant = bedPlantWithPlant,
-                onPlantClick = { onPlantClick(bedPlantWithPlant.plant) }
+                onPlantClick = { onPlantClick(bedPlantWithPlant.plant) },
+                onDeleteClick = { onDeleteClick(bedPlantWithPlant.bedPlant.id) }
             )
         }
     }
@@ -830,72 +918,165 @@ fun BedPlantsList(
 fun BedPlantCard(
     bedPlantWithPlant: BedPlantWithPlant,
     onPlantClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Диалог подтверждения удаления
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    "Удаление растения",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text("Вы точно хотите удалить растение?")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "'${bedPlantWithPlant.plant.name}'",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B5E20)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (bedPlantWithPlant.bedPlant.posX != null && bedPlantWithPlant.bedPlant.posY != null) {
+                        Text(
+                            text = "⚠️ Растение посажено на клетке ${bedPlantWithPlant.bedPlant.posX},${bedPlantWithPlant.bedPlant.posY}",
+                            color = Color(0xFFF44336),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick()
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFFF44336)
+                    )
+                ) {
+                    Text("УДАЛИТЬ", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("ОТМЕНА")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onPlantClick),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
+        Column {
+            // Основная информация о растении
+            Row(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        color = Color(0xFFE8F5E9),
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .clickable(onClick = onPlantClick)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = bedPlantWithPlant.plant.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1B5E20)
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Количество: ${bedPlantWithPlant.bedPlant.quantity}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                if (bedPlantWithPlant.bedPlant.plantingDate.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            color = Color(0xFFE8F5E9),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        text = "Посажено: ${bedPlantWithPlant.bedPlant.plantingDate}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "🌱",
+                        fontSize = 24.sp
                     )
                 }
 
-                // Показываем координаты, если растение посажено на сетке
-                if (bedPlantWithPlant.bedPlant.posX != null && bedPlantWithPlant.bedPlant.posY != null) {
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
-                        text = "📍 Позиция: ${bedPlantWithPlant.bedPlant.posX},${bedPlantWithPlant.bedPlant.posY}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF5E7A3C),
-                        fontWeight = FontWeight.Bold
+                        text = bedPlantWithPlant.plant.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B5E20)
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Количество: ${bedPlantWithPlant.bedPlant.quantity}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    if (bedPlantWithPlant.bedPlant.plantingDate.isNotEmpty()) {
+                        Text(
+                            text = "Посажено: ${bedPlantWithPlant.bedPlant.plantingDate}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Показываем координаты, если растение посажено на сетке
+                    if (bedPlantWithPlant.bedPlant.posX != null && bedPlantWithPlant.bedPlant.posY != null) {
+                        Text(
+                            text = "📍 Позиция: ${bedPlantWithPlant.bedPlant.posX},${bedPlantWithPlant.bedPlant.posY}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF5E7A3C),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // Панель с кнопкой удаления
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFF5F5F5))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Button(
+                    onClick = { showDeleteDialog = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFF44336),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(text = "🗑️", fontSize = 14.sp)
+                        Text(
+                            text = "Удалить",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
