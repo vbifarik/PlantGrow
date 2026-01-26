@@ -1,9 +1,14 @@
 package com.example.plantgrow.data.plant
 
+data class PlantGenusResult(
+    val genus: String,
+    val plantCount: Int
+)
+
 data class PlantCategory(
     val genus: String,
-    val iconEmoji: String,
-    val plantCount: Int
+    val plantCount: Int,
+    val iconEmoji: String
 ) {
     companion object {
         fun getEmojiForGenus(genus: String): String {

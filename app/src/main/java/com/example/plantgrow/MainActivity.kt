@@ -94,7 +94,7 @@ fun BottomNavigationBar(navController: NavHostController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar(
-        modifier = Modifier.height(100.dp),
+        modifier = Modifier.height(90.dp),
         containerColor = Color(0xFF5E7A3C) // Зеленый цвет как в TopAppBar
     ) {
         NavBarItems.BottomNavItems.forEach { navItem ->

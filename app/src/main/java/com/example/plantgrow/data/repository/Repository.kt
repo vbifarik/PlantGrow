@@ -9,10 +9,12 @@ import com.example.plantgrow.data.pest.Pest
 import com.example.plantgrow.data.pest.PestDao
 import com.example.plantgrow.data.plant.GenusWithCount
 import com.example.plantgrow.data.plant.Plant
+import com.example.plantgrow.data.plant.PlantCategory
 import com.example.plantgrow.data.plant.PlantDao
 import jakarta.inject.Inject
 import jakarta.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 @Singleton
 class GardenRepository @Inject constructor(
@@ -51,7 +53,17 @@ class GardenRepository @Inject constructor(
     suspend fun deletePlant(plant: Plant) = plantDao.delete(plant)
     suspend fun searchPlants(searchQuery: String): List<Plant> = plantDao.searchPlants(searchQuery)
     suspend fun getPlantsByGenus(genus: String): List<Plant> = plantDao.getPlantsByGenus(genus)
-
+    fun getPlantGenus(): Flow<List<PlantCategory>> {
+        return plantDao.getPlantGenus().map { list ->
+            list.map { result ->
+                PlantCategory(
+                    genus = result.genus,
+                    plantCount = result.plantCount,
+                    iconEmoji = PlantCategory.getEmojiForGenus(result.genus)
+                )
+            }
+        }
+    }
     // === Методы для вредителей ===
     fun getAllPests(): Flow<List<Pest>> = pestDao.getAllPests()
     suspend fun getPestById(pestId: Int): Pest? = pestDao.getPestById(pestId)

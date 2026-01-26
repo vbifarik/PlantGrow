@@ -105,7 +105,6 @@ fun PestScreen(viewModel: PestViewModel = hiltViewModel(), navController: NavCon
             }
         }
     }
-
 }
 @Composable
 fun PestCard(

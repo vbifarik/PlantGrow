@@ -3,43 +3,44 @@ package com.example.plantgrow.screen.plantCategory
 import com.example.plantgrow.data.plant.PlantCategory
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.plantgrow.data.pest.Pest
 import com.example.plantgrow.data.repository.GardenRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PlantCategoryViewModel @Inject constructor(
     private val repository: GardenRepository
 ) : ViewModel() {
+    private val _searchQuery = MutableStateFlow("")
 
-    // Поток категорий растений
-    val plantCategories: Flow<List<PlantCategory>> =
-        repository.getAllPlants()
-            .map { plants ->
-                // Группируем растения по mainGenus
-                val groupedByGenus = plants.groupBy { it.mainGenus }
+    // Получаем уже готовые PlantCategory из Repository
+    val plantCategories: Flow<List<PlantCategory>> = repository.getPlantGenus()
 
-                // Преобразуем в UI модели категорий
-                groupedByGenus.map { (genus, plantList) ->
-                    PlantCategory(
-                        genus = genus,
-                        iconEmoji = PlantCategory.getEmojiForGenus(genus),
-                        plantCount = plantList.size
-                    )
-                }.sortedBy { it.genus } // Сортируем по алфавиту
+    val filteredPlantCategories: Flow<List<PlantCategory>> = combine(
+        plantCategories,
+        _searchQuery
+    ) { categories, query ->
+        if (query.isBlank()) {
+            categories
+        } else {
+            categories.filter { category ->
+                category.genus.contains(query, ignoreCase = true)
             }
-
-    // Альтернативный вариант - получение категорий напрямую из БД
-    suspend fun getGeneraWithCount(): List<PlantCategory> {
-        val generaWithCount = repository.getGeneraWithCount()
-        return generaWithCount.map { genusWithCount ->
-            PlantCategory(
-                genus = genusWithCount.mainGenus,
-                iconEmoji = PlantCategory.getEmojiForGenus(genusWithCount.mainGenus),
-                plantCount = genusWithCount.plantCount
-            )
         }
+    }.flowOn(Dispatchers.Default)
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
     }
 }

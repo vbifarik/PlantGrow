@@ -24,6 +24,16 @@ interface PlantDao {
     @Query("SELECT * FROM plants ORDER BY name")
     fun getAllPlants(): Flow<List<Plant>>
 
+    @Query("""
+        SELECT mainGenus as genus, 
+               COUNT(*) as plantCount 
+        FROM plants 
+        WHERE mainGenus != '' 
+        GROUP BY mainGenus 
+        ORDER BY mainGenus
+    """)
+    fun getPlantGenus(): Flow<List<PlantGenusResult>>
+
     @Query("SELECT * FROM plants WHERE name LIKE '%' || :searchQuery || '%' OR mainGenus LIKE '%' || :searchQuery || '%'")
     suspend fun searchPlants(searchQuery: String): List<Plant>
 
