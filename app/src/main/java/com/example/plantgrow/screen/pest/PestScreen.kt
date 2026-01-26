@@ -65,17 +65,6 @@ fun PestScreen(viewModel: PestViewModel = hiltViewModel(), navController: NavCon
                     IconButton(onClick = {navController.popBackStack()}) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Вернуться назад")
                     }
-                    Button(
-                        onClick = {
-                            viewModel.populatePestDatabase()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF8BC34A)
-                        ),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text("Добавить вредителей", fontSize = 14.sp)
-                    }
                 }
             )
         },

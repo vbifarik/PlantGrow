@@ -74,30 +74,7 @@ fun BedScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFF5E7A3C),
                     titleContentColor = Color.White
-                ),
-                actions = {
-                    // Кнопка для заполнения БД
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                try {
-                                    viewModel.populatePlantsDatabase()
-                                    showSuccessMessage = true
-                                } catch (e: Exception) {
-                                    showErrorMessage = true
-                                }
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF8BC34A)
-                        ),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text("🌱", fontSize = 20.sp)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Добавить растения", fontSize = 14.sp)
-                    }
-                }
+                )
             )
         },
         floatingActionButton = {

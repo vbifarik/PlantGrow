@@ -1,9 +1,11 @@
 package com.example.plantgrow.data.database
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.plantgrow.data.bed.Bed
 import com.example.plantgrow.data.bed.BedDao
 import com.example.plantgrow.data.bedplant.BedPlant
@@ -12,11 +14,14 @@ import com.example.plantgrow.data.pest.Pest
 import com.example.plantgrow.data.pest.PestDao
 import com.example.plantgrow.data.plant.Plant
 import com.example.plantgrow.data.plant.PlantDao
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
+import java.io.IOException
 
 @Database(
     entities = [Bed::class, Plant::class, Pest::class, BedPlant::class],
-    version = 8,
-    exportSchema = true
+    version = 9,
+    exportSchema = false
 )
 abstract class GardenDatabase : RoomDatabase() {
     abstract fun bedDao(): BedDao
@@ -35,6 +40,7 @@ abstract class GardenDatabase : RoomDatabase() {
                     GardenDatabase::class.java,
                     "garden.db"
                 )
+                    .createFromAsset("garden.db")
                     .fallbackToDestructiveMigration(false)
                     .build()
                 INSTANCE = instance

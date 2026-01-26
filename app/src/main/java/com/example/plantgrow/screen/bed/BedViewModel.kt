@@ -47,9 +47,5 @@ class BedViewModel @Inject constructor(
         val formatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
         return formatter.format(Date())
     }
-    fun populatePlantsDatabase() {
-        viewModelScope.launch {
-            repository.populateInitialPlantsData()
-        }
-    }
+
 }
