@@ -91,4 +91,9 @@ dependencies {
     // Debug
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    //Coil
+    implementation(libs.coil)
+    implementation(libs.coil.compose)
+
 }

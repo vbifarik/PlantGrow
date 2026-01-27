@@ -41,6 +41,7 @@ class PestViewModel @Inject constructor(
     }
     fun populatePestDatabase() {
         viewModelScope.launch {
+            repository.populateInitialPlantsData()
             repository.populatePests()
         }
     }

@@ -26,8 +26,7 @@ interface PlantDao {
 
     @Query("""
         SELECT mainGenus as genus, 
-               COUNT(*) as plantCount,
-               imageResId as image
+               COUNT(*) as plantCount
         FROM plants 
         WHERE mainGenus != '' 
         GROUP BY mainGenus 

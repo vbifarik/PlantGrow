@@ -1,6 +1,5 @@
 package com.example.plantgrow.screen.plant
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,8 +40,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +49,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.plantgrow.R
 import com.example.plantgrow.data.plant.Plant
 import com.example.plantgrow.navigation.Screens
 
@@ -158,6 +159,20 @@ fun PlantCard(
     showAddButton: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+
+    val imageResId = remember(plant.mainGenus) {
+        when (plant.mainGenus) {
+            "Картофель" -> R.drawable.ic_potato
+            "Томат" -> R.drawable.ic_tomato
+            "Перец сладкий", "Перец" -> R.drawable.ic_pepper
+            "Перец острый", "Перец жгучий" -> R.drawable.ic_chili
+            "Огурец" -> R.drawable.ic_cucumber
+            "Капуста белокочанная", "Капуста" -> R.drawable.ic_cabbage
+            "Капуста цветная" -> R.drawable.ic_cauliflower
+            else -> R.drawable.ic_chili
+        }
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -174,22 +189,13 @@ fun PlantCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Эмодзи растения
-                Box(
+                AsyncImage(
                     modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            color = Color(0xFFE8F5E9),
-                            shape = RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = getPlantEmoji(plant.mainGenus),
-                        fontSize = 30.sp
-                    )
-                }
+                        .size(60.dp),
+                    model = plant.imageUrl,
+                    contentDescription = plant.name,
+                    error = painterResource(imageResId)
+                )
 
                 Spacer(modifier = Modifier.width(16.dp))
 
@@ -265,34 +271,6 @@ fun PlantCard(
                 }
             }
         }
-    }
-}
-
-// Функция для получения эмодзи по роду растения
-private fun getPlantEmoji(genus: String): String {
-    return when {
-        genus.contains("Картофель", ignoreCase = true) -> "🥔"
-        genus.contains("Томат", ignoreCase = true) -> "🍅"
-        genus.contains("Перец", ignoreCase = true) -> "🌶️"
-        genus.contains("Огурец", ignoreCase = true) -> "🥒"
-        genus.contains("Капуста", ignoreCase = true) -> "🥬"
-        genus.contains("Морковь", ignoreCase = true) -> "🥕"
-        genus.contains("Лук", ignoreCase = true) -> "🧅"
-        genus.contains("Чеснок", ignoreCase = true) -> "🧄"
-        genus.contains("Свекла", ignoreCase = true) -> "🔴"
-        genus.contains("Редис", ignoreCase = true) -> "🌶️"
-        genus.contains("Кабачок", ignoreCase = true) -> "🥒"
-        genus.contains("Тыква", ignoreCase = true) -> "🎃"
-        genus.contains("Баклажан", ignoreCase = true) -> "🍆"
-        genus.contains("Горох", ignoreCase = true) -> "🫘"
-        genus.contains("Фасоль", ignoreCase = true) -> "🫘"
-        genus.contains("Кукуруза", ignoreCase = true) -> "🌽"
-        genus.contains("Салат", ignoreCase = true) -> "🥬"
-        genus.contains("Шпинат", ignoreCase = true) -> "🍃"
-        genus.contains("Базилик", ignoreCase = true) -> "🌿"
-        genus.contains("Укроп", ignoreCase = true) -> "🌿"
-        genus.contains("Петрушка", ignoreCase = true) -> "🌿"
-        else -> "🌱"
     }
 }
 

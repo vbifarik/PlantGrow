@@ -38,6 +38,5 @@ data class Plant(
     val droughtResistance: String = "Не указано",
     val pestResistance: String = "Не указано",
     val growthHabit: String = "", // Габитус
-    val branchingType: String = "", // Характер ветвления
-    val imageResId: Int
+    val branchingType: String = "" // Характер ветвления
 )

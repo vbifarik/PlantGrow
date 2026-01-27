@@ -14,6 +14,7 @@ uiText = "1.10.0"
 ui = "1.10.1"
 material3 = "1.4.0"
 webgpu = "1.0.0-alpha03"
+coil = "2.6.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -42,8 +43,9 @@ androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", ve
 androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
 androidx-webgpu = { group = "androidx.webgpu", name = "webgpu", version.ref = "webgpu" }
+coil = { module = "io.coil-kt:coil", version.ref = "coil" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

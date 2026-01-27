@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,6 +51,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
+import com.example.plantgrow.R
 import com.example.plantgrow.data.plant.PlantCategory
 import com.example.plantgrow.navigation.Screens
 
@@ -148,6 +151,18 @@ fun PlantCategoryCard(
     category: PlantCategory,
     onClick: () -> Unit
 ) {
+    val imageResId = remember(category.genus) {
+        when (category.genus) {
+            "Картофель" -> R.drawable.ic_potato
+            "Томат" -> R.drawable.ic_tomato
+            "Перец сладкий", "Перец" -> R.drawable.ic_pepper
+            "Перец острый", "Перец жгучий" -> R.drawable.ic_chili
+            "Огурец" -> R.drawable.ic_cucumber
+            "Капуста белокочанная", "Капуста" -> R.drawable.ic_cabbage
+            "Капуста цветная" -> R.drawable.ic_cauliflower
+            else -> R.drawable.ic_chili
+        }
+    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -172,7 +187,9 @@ fun PlantCategoryCard(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = category.image),
+                    painter = rememberAsyncImagePainter(
+                        model = imageResId,
+                    ),
                     contentDescription = category.genus,
                     modifier = Modifier.fillMaxSize(0.65f)
                 )
