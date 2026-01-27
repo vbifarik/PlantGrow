@@ -1,5 +1,6 @@
 package com.example.plantgrow.screen.plantCategory
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -159,7 +161,6 @@ fun PlantCategoryCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Иконка категории в кружке
             Box(
                 modifier = Modifier
                     .size(60.dp)
@@ -170,9 +171,10 @@ fun PlantCategoryCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = category.iconEmoji.toString(),
-                    fontSize = 30.sp
+                Image(
+                    painter = painterResource(id = category.image),
+                    contentDescription = category.genus,
+                    modifier = Modifier.fillMaxSize(0.65f)
                 )
             }
 

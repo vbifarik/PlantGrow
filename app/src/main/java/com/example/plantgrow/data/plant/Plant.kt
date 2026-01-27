@@ -16,7 +16,6 @@ data class Plant(
     val name: String,
     val description: String = "",
     val imageUrl: String? = null,
-
     val mainGenus: String = "", // Основной род
     val yield: String = "", // Урожайность
     val ripeningPeriod: String = "", // Срок созревания
@@ -40,5 +39,5 @@ data class Plant(
     val pestResistance: String = "Не указано",
     val growthHabit: String = "", // Габитус
     val branchingType: String = "", // Характер ветвления
-    val fleshDensity: String = "" // Плотность мякоти
+    val imageResId: Int
 )

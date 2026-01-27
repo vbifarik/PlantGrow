@@ -350,7 +350,6 @@ fun PlantDetailContent(
         val additionalCharacteristics = buildList {
             if (plant.lifeForm.isNotEmpty()) add("🌳 Жизненная форма" to plant.lifeForm)
             if (plant.branchingType.isNotEmpty()) add("🌿 Характер ветвления" to plant.branchingType)
-            if (plant.fleshDensity.isNotEmpty()) add("🔬 Плотность мякоти" to plant.fleshDensity)
         }
 
         if (additionalCharacteristics.isNotEmpty()) {

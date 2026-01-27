@@ -20,7 +20,7 @@ import java.io.IOException
 
 @Database(
     entities = [Bed::class, Plant::class, Pest::class, BedPlant::class],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class GardenDatabase : RoomDatabase() {

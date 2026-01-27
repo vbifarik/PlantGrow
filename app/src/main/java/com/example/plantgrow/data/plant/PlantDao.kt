@@ -26,13 +26,14 @@ interface PlantDao {
 
     @Query("""
         SELECT mainGenus as genus, 
-               COUNT(*) as plantCount 
+               COUNT(*) as plantCount,
+               imageResId as image
         FROM plants 
         WHERE mainGenus != '' 
         GROUP BY mainGenus 
         ORDER BY mainGenus
     """)
-    fun getPlantGenus(): Flow<List<PlantGenusResult>>
+    fun getPlantGenus(): Flow<List<PlantCategory>>
 
     @Query("SELECT * FROM plants WHERE name LIKE '%' || :searchQuery || '%' OR mainGenus LIKE '%' || :searchQuery || '%'")
     suspend fun searchPlants(searchQuery: String): List<Plant>

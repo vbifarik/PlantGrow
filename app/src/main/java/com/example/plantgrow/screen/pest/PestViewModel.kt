@@ -39,4 +39,9 @@ class PestViewModel @Inject constructor(
             _searchQuery.emit(query)
         }
     }
+    fun populatePestDatabase() {
+        viewModelScope.launch {
+            repository.populatePests()
+        }
+    }
 }
