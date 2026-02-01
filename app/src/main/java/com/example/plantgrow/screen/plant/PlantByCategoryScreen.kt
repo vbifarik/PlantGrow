@@ -50,6 +50,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.plantgrow.ImageResourceHelper
 import com.example.plantgrow.R
 import com.example.plantgrow.data.plant.Plant
 import com.example.plantgrow.navigation.Screens
@@ -160,18 +161,7 @@ fun PlantCard(
     modifier: Modifier = Modifier
 ) {
 
-    val imageResId = remember(plant.mainGenus) {
-        when (plant.mainGenus) {
-            "Картофель" -> R.drawable.ic_potato
-            "Томат" -> R.drawable.ic_tomato
-            "Перец сладкий", "Перец" -> R.drawable.ic_pepper
-            "Перец острый", "Перец жгучий" -> R.drawable.ic_chili
-            "Огурец" -> R.drawable.ic_cucumber
-            "Капуста белокочанная", "Капуста" -> R.drawable.ic_cabbage
-            "Капуста цветная" -> R.drawable.ic_cauliflower
-            else -> R.drawable.ic_chili
-        }
-    }
+    val imageResId = ImageResourceHelper.getImageResIdByGenus(plant.mainGenus)
 
     Card(
         modifier = modifier

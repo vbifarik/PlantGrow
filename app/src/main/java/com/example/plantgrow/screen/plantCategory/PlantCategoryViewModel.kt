@@ -24,7 +24,6 @@ class PlantCategoryViewModel @Inject constructor(
 ) : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
 
-    // Получаем уже готовые PlantCategory из Repository
     val plantCategories: Flow<List<PlantCategory>> = repository.getPlantGenus()
 
     val filteredPlantCategories: Flow<List<PlantCategory>> = combine(

@@ -1,25 +1,18 @@
 package com.example.plantgrow.screen.bedDetail
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -29,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.plantgrow.ImageResourceHelper
 import com.example.plantgrow.data.bed.Bed
 import com.example.plantgrow.data.bedplant.BedPlantWithPlant
 import com.example.plantgrow.data.plant.Plant
@@ -54,7 +50,6 @@ fun BedDetailScreen(
     val selectedTiles by viewModel.selectedTiles.collectAsState()
     val plantedPlants by viewModel.getPlantedPlantsOnGrid().collectAsState(initial = emptyMap())
 
-    // Извлекаем растение и количество
     val selectedPlant = selectedPlantWithQuantity?.first
     val availableQuantity = selectedPlantWithQuantity?.second ?: 0
 
@@ -553,9 +548,13 @@ fun BedGridView(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text(
-                                            text = "🌱",
-                                            fontSize = 14.sp
+                                        val imageResId = ImageResourceHelper.getImageResIdByGenus(plant.mainGenus)
+                                        AsyncImage(
+                                            modifier = Modifier
+                                                .size(14.dp),
+                                            model = plant.imageUrl,
+                                            contentDescription = plant.name,
+                                            error = painterResource(imageResId)
                                         )
                                         Text(
                                             text = plant.name.take(6) + if (plant.name.length > 6) "..." else "",
@@ -653,7 +652,7 @@ fun BedGridView(
         }
 
         // Кнопка посадки - показываем только если можно посадить
-        if (selectedPlant != null && selectedTiles.isNotEmpty() && selectedTiles.size <= availableQuantity && availableQuantity > 0) {
+        if (selectedPlant != null && selectedTiles.isNotEmpty() && selectedTiles.size <= availableQuantity) {
             Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = onPlantClick,
@@ -721,78 +720,6 @@ fun BedGridView(
                 }
             }
         }
-
-        // Легенда
-        if (gridSizeX <= 10) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFF9F9F9)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    Text(
-                        text = "📋 Легенда:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1B5E20)
-                    )
-                    Row(
-                        modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        LegendItem(
-                            color = Color(0xFFF5F5F5),
-                            borderColor = Color(0xFFE0E0E0),
-                            text = "Пустая"
-                        )
-                        LegendItem(
-                            color = Color(0xFF8BC34A),
-                            borderColor = Color(0xFF689F38),
-                            text = "Выбрана"
-                        )
-                        LegendItem(
-                            color = Color(0xFFC8E6C9),
-                            borderColor = Color(0xFF4CAF50),
-                            text = "Посажена"
-                        )
-                        LegendItem(
-                            color = Color(0xFFF5F5F5),
-                            borderColor = Color(0xFF9E9E9E),
-                            text = "Заблок."
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun LegendItem(
-    color: Color,
-    borderColor: Color,
-    text: String
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(16.dp)
-                .background(color, RoundedCornerShape(4.dp))
-                .border(1.dp, borderColor, RoundedCornerShape(4.dp))
-        )
-        Text(
-            text = text,
-            fontSize = 10.sp,
-            color = Color.Gray
-        )
     }
 }
 
@@ -834,15 +761,13 @@ fun UnplantedPlantItem(
                         maxLines = 2
                     )
 
-                    plant.mainGenus?.let { genus ->
-                        Text(
-                            text = genus,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isSelected) Color.White.copy(alpha = 0.9f)
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
+                    Text(
+                        text = plant.mainGenus,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isSelected) Color.White.copy(alpha = 0.9f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
                 }
 
                 // Показываем количество
@@ -1003,9 +928,13 @@ fun BedPlantCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "🌱",
-                        fontSize = 24.sp
+                    val imageResId = ImageResourceHelper.getImageResIdByGenus(bedPlantWithPlant.plant.mainGenus)
+                    AsyncImage(
+                        modifier = Modifier
+                            .size(60.dp),
+                        model = bedPlantWithPlant.plant.imageUrl,
+                        contentDescription = bedPlantWithPlant.plant.name,
+                        error = painterResource(imageResId)
                     )
                 }
 

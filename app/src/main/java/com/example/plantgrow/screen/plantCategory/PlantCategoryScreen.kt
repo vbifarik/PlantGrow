@@ -52,6 +52,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.plantgrow.ImageResourceHelper
 import com.example.plantgrow.R
 import com.example.plantgrow.data.plant.PlantCategory
 import com.example.plantgrow.navigation.Screens
@@ -151,18 +152,7 @@ fun PlantCategoryCard(
     category: PlantCategory,
     onClick: () -> Unit
 ) {
-    val imageResId = remember(category.genus) {
-        when (category.genus) {
-            "Картофель" -> R.drawable.ic_potato
-            "Томат" -> R.drawable.ic_tomato
-            "Перец сладкий", "Перец" -> R.drawable.ic_pepper
-            "Перец острый", "Перец жгучий" -> R.drawable.ic_chili
-            "Огурец" -> R.drawable.ic_cucumber
-            "Капуста белокочанная", "Капуста" -> R.drawable.ic_cabbage
-            "Капуста цветная" -> R.drawable.ic_cauliflower
-            else -> R.drawable.ic_chili
-        }
-    }
+    val imageResId = ImageResourceHelper.getImageResIdByGenus(category.genus)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -216,7 +206,6 @@ fun PlantCategoryCard(
                 )
             }
 
-            // Стрелка для навигации
             Box(
                 modifier = Modifier
                     .size(40.dp)

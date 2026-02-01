@@ -1,5 +1,13 @@
 package com.example.plantgrow.screen.bed
 
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,6 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,14 +45,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.example.plantgrow.MainActivity
 import com.example.plantgrow.data.bed.Bed
 import com.example.plantgrow.navigation.Screens
+import com.example.plantgrow.notification.WateringNotificationScheduler
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,9 +73,6 @@ fun BedScreen(
     var newBedName by remember { mutableStateOf("") }
     var bedTileX by remember { mutableStateOf("10") }
     var bedTileY by remember { mutableStateOf("10") }
-
-    var showSuccessMessage by remember { mutableStateOf(false) }
-    var showErrorMessage by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -120,30 +132,34 @@ fun BedScreen(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = bedTileX,
                             onValueChange = { bedTileX = it },
-                            label = { Text("Размер по x") },
+                            label = { Text("Размер по X") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = bedTileY,
                             onValueChange = { bedTileY = it },
-                            label = { Text("Размер по н") },
+                            label = { Text("Размер по Y") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            if (newBedName.isNotBlank()) {
+                            if (newBedName.isNotBlank() && bedTileX.isNotBlank() && bedTileY.isNotBlank()) {
                                 scope.launch {
                                     viewModel.addBed(newBedName, bedTileX.toInt(), bedTileY.toInt())
+
                                     newBedName = ""
+                                    bedTileX = "10"
+                                    bedTileY = "10"
                                     showAddDialog = false
                                 }
                             }
@@ -157,38 +173,6 @@ fun BedScreen(
                         onClick = { showAddDialog = false }
                     ) {
                         Text("Отмена")
-                    }
-                }
-            )
-        }
-
-        // Диалог успешного заполнения БД
-        if (showSuccessMessage) {
-            AlertDialog(
-                onDismissRequest = { showSuccessMessage = false },
-                title = { Text("✅ Успешно") },
-                text = { Text("База данных растений успешно заполнена!") },
-                confirmButton = {
-                    TextButton(
-                        onClick = { showSuccessMessage = false }
-                    ) {
-                        Text("ОК")
-                    }
-                }
-            )
-        }
-
-        // Диалог ошибки
-        if (showErrorMessage) {
-            AlertDialog(
-                onDismissRequest = { showErrorMessage = false },
-                title = { Text("❌ Ошибка") },
-                text = { Text("Не удалось заполнить базу данных растений") },
-                confirmButton = {
-                    TextButton(
-                        onClick = { showErrorMessage = false }
-                    ) {
-                        Text("ОК")
                     }
                 }
             )
@@ -228,16 +212,47 @@ fun BedList(
     modifier: Modifier = Modifier,
     navController: NavController
 ) {
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(beds, key = { it.id }) { bed ->
-            BedCard(bed = bed,
-                onClick = {
-                navController.navigate(Screens.BedDetail.createRoute(bed.id))
-            })
+    val context = LocalContext.current
+    var hoursDay by remember { mutableStateOf("10") }
+    var hoursEven by remember { mutableStateOf("11") }
+    Column(modifier = modifier) {
+        Column() {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = hoursDay,
+                    onValueChange = { hoursDay = it },
+                    label = { Text("Часы день") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                Button(onClick = {
+                    val scheduler = WateringNotificationScheduler(context)
+                    scheduler.rescheduleNotifications(
+                        morningHour = hoursDay.toIntOrNull() ?: 8,
+                        afternoonHour = hoursEven.toIntOrNull() ?: 14
+                    )
+                }) { }
+                OutlinedTextField(
+                    value = hoursEven,
+                    onValueChange = { hoursEven = it },
+                    label = { Text("Часы вечер") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        LazyColumn(
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(beds, key = { it.id }) { bed ->
+                BedCard(bed = bed,
+                    onClick = {
+                        navController.navigate(Screens.BedDetail.createRoute(bed.id))
+                    })
+            }
         }
     }
 }

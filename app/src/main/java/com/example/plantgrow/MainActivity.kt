@@ -1,9 +1,13 @@
 package com.example.plantgrow
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -28,14 +33,35 @@ import androidx.navigation.compose.rememberNavController
 import com.example.plantgrow.navigation.NavBarItems
 import com.example.plantgrow.navigation.NavGraph
 import com.example.plantgrow.navigation.Screens
+import com.example.plantgrow.notification.WateringNotificationScheduler
 import com.example.plantgrow.ui.theme.PlantGrowTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private lateinit var notificationScheduler: WateringNotificationScheduler
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _: Boolean ->
+
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        notificationScheduler = WateringNotificationScheduler(this)
+
+        // Проверяем и запрашиваем разрешение на уведомления (для Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            checkAndRequestNotificationPermission()
+        } else {
+            // Для Android < 13 сразу запускаем планировщик
+            notificationScheduler.scheduleDailyNotifications()
+        }
+
         setContent {
             PlantGrowTheme {
                 Surface(
@@ -47,6 +73,21 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun checkAndRequestNotificationPermission() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (!hasPermission) {
+            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            notificationScheduler.scheduleDailyNotifications()
+        }
+    }
+
 }
 
 @Composable
@@ -88,6 +129,7 @@ fun AppNavigation() {
         )
     }
 }
+
 @Composable
 fun BottomNavigationBar(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()

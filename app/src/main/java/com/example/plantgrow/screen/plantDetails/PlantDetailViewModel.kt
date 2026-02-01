@@ -3,6 +3,7 @@ package com.example.plantgrow.screen.plantDetails
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.plantgrow.data.plant.Plant
 import com.example.plantgrow.data.repository.GardenRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,8 +19,8 @@ class PlantDetailViewModel @Inject constructor(
 
     private val plantId: Int = savedStateHandle.get<Int>("plantId") ?: 0
 
-    private val _plant = MutableStateFlow<com.example.plantgrow.data.plant.Plant?>(null)
-    val plant: StateFlow<com.example.plantgrow.data.plant.Plant?> = _plant
+    private val _plant = MutableStateFlow<Plant?>(null)
+    val plant: StateFlow<Plant?> = _plant
 
     init {
         loadPlant()

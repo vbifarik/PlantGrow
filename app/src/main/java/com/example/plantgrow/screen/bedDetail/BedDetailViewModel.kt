@@ -177,21 +177,17 @@ class BedDetailViewModel @Inject constructor(
         }
     }
 
-    // Добавить новое растение на грядку (без позиции)
     fun addPlantToBed(plantId: Int, quantity: Int = 1, notes: String = "") {
         viewModelScope.launch {
-            // Проверяем, есть ли уже такое растение без позиции
             val existingPlants = repository.getAllBedPlantsForPlant(bedId, plantId)
                 .filter { it.posX == null }
 
             if (existingPlants.isNotEmpty()) {
-                // Берем первую запись без позиции и увеличиваем количество
                 val firstRecord = existingPlants.first()
                 repository.updateBedPlant(
                     firstRecord.copy(quantity = firstRecord.quantity + quantity)
                 )
             } else {
-                // Создаем новую запись
                 repository.addPlantToBed(
                     BedPlant(
                         bedId = bedId,
@@ -238,7 +234,6 @@ class BedDetailViewModel @Inject constructor(
         return formatter.format(Date())
     }
 
-    // Вспомогательные методы для UI
     fun getSelectedPlant(): Plant? = _selectedPlantWithQuantity.value?.first
     fun getAvailableQuantity(): Int = _selectedPlantWithQuantity.value?.second ?: 0
 }
