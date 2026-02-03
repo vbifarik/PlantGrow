@@ -31,6 +31,7 @@ class GardenRepository @Inject constructor(
     // === Методы для растений на грядках ===
     suspend fun addPlantToBed(bedPlant: BedPlant): Long = bedPlantDao.insert(bedPlant)
     suspend fun removePlantFromBed(bedPlantId: Int) = bedPlantDao.deleteById(bedPlantId)
+    suspend fun deleteAllBedPlantsByBed(bedId: Int) = bedPlantDao.deleteAllBedPlantsByBed(bedId)
     suspend fun updateBedPlant(bedPlant: BedPlant) = bedPlantDao.update(bedPlant)
     suspend fun getBedPlantById(bedPlantId: Int): BedPlant? = bedPlantDao.getBedPlantById(bedPlantId)
     suspend fun getBedPlant(bedId: Int, plantId: Int): BedPlant? = bedPlantDao.getBedPlant(bedId, plantId)

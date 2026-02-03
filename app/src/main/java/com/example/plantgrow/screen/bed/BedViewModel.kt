@@ -39,6 +39,7 @@ class BedViewModel @Inject constructor(
 
     fun deleteBed(bed: Bed) {
         viewModelScope.launch {
+            repository.deleteAllBedPlantsByBed(bed.id)
             repository.deleteBed(bed)
         }
     }

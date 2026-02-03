@@ -20,6 +20,9 @@ interface BedPlantDao {
     @Query("DELETE FROM bed_plants WHERE id = :bedPlantId")
     suspend fun deleteById(bedPlantId: Int)
 
+    @Query("DELETE FROM bed_plants WHERE bedId = :bedId")
+    suspend fun deleteAllBedPlantsByBed(bedId: Int)
+
     @Query("SELECT * FROM bed_plants WHERE bedId = :bedId AND plantId = :plantId LIMIT 1")
     suspend fun getBedPlant(bedId: Int, plantId: Int): BedPlant?
 

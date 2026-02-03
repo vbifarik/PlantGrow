@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -50,15 +51,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
         notificationScheduler = WateringNotificationScheduler(this)
 
-        // Проверяем и запрашиваем разрешение на уведомления (для Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             checkAndRequestNotificationPermission()
         } else {
-            // Для Android < 13 сразу запускаем планировщик
             notificationScheduler.scheduleDailyNotifications()
         }
 
@@ -136,8 +134,8 @@ fun BottomNavigationBar(navController: NavHostController) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     NavigationBar(
-        modifier = Modifier.height(90.dp),
-        containerColor = Color(0xFF5E7A3C) // Зеленый цвет как в TopAppBar
+        modifier = Modifier.fillMaxHeight(0.1f),
+        containerColor = Color(0xFF5E7A3C)
     ) {
         NavBarItems.BottomNavItems.forEach { navItem ->
             val isSelected = currentRoute == navItem.route
