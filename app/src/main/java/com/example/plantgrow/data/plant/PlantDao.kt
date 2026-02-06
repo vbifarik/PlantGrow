@@ -40,18 +40,6 @@ interface PlantDao {
     @Query("SELECT * FROM plants WHERE mainGenus = :genus ORDER BY name")
     suspend fun getPlantsByGenus(genus: String): List<Plant>
 
-    @Query("SELECT DISTINCT mainGenus FROM plants WHERE mainGenus != '' ORDER BY mainGenus")
-    suspend fun getAllGenera(): List<String>
-
-    @Query("SELECT mainGenus, COUNT(*) as plantCount FROM plants WHERE mainGenus != '' GROUP BY mainGenus ORDER BY mainGenus")
-    suspend fun getGeneraWithCount(): List<GenusWithCount>
-
-    @Query("""
-        SELECT DISTINCT p.* FROM plants p
-        INNER JOIN bed_plants bp ON p.id = bp.plantId
-        WHERE bp.bedId = :bedId AND bp.posX IS NULL AND bp.quantity > 0
-    """)
-    fun getUnplantedPlants(bedId: Int): Flow<List<Plant>>
 }
 data class GenusWithCount(
     val mainGenus: String,

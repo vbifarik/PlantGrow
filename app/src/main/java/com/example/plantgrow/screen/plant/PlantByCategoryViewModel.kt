@@ -24,6 +24,7 @@ class PlantByCategoryViewModel @Inject constructor(
 ) : ViewModel() {
     private val genus: String = savedStateHandle.get<String>("genus") ?: ""
     private val _searchQuery = MutableStateFlow("")
+    val categoryName: String = genus
     val plantsList: Flow<List<Plant>> = repository.getAllPlants()
         .map { allPlants ->
             allPlants.filter { it.mainGenus == genus }
@@ -41,35 +42,22 @@ class PlantByCategoryViewModel @Inject constructor(
         }
     }.flowOn(Dispatchers.Default)
 
-    // Метод для обновления поиска
     fun updateSearchQuery(query: String) {
         viewModelScope.launch {
             _searchQuery.emit(query)
         }
     }
-    val categoryName: String = genus
+
+
     fun addPlantToBed(bedId: Int, plantId: Int) {
         viewModelScope.launch {
-            // Сначала проверим, есть ли уже такое растение на грядке
-            val existingBedPlant = repository.getBedPlant(bedId, plantId)
-
-            if (existingBedPlant == null) {
-                // Если нет, создаем новую запись
-                repository.addPlantToBed(
-                    BedPlant(
-                        bedId = bedId,
-                        plantId = plantId,
-                        quantity = 1
-                    )
+            repository.addPlantToBed(
+                BedPlant(
+                    bedId = bedId,
+                    plantId = plantId,
+                    quantity = 1
                 )
-            } else {
-                // Если есть, увеличиваем количество
-                repository.updateBedPlant(
-                    existingBedPlant.copy(
-                        quantity = existingBedPlant.quantity + 1
-                    )
-                )
-            }
+            )
         }
     }
 }

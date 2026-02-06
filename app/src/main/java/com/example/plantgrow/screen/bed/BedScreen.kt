@@ -2,12 +2,10 @@ package com.example.plantgrow.screen.bed
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,12 +16,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,13 +49,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.example.plantgrow.MainActivity
 import com.example.plantgrow.data.bed.Bed
 import com.example.plantgrow.navigation.Screens
 import com.example.plantgrow.notification.WateringNotificationScheduler
@@ -110,7 +108,8 @@ fun BedScreen(
                     beds = beds,
                     modifier = Modifier.weight(1f),
                     navController = navController,
-                    onDeleteBed = { bed ->  viewModel.deleteBed(bed) }
+                    onDeleteBed = { bed -> viewModel.deleteBed(bed) },
+                    updateBed = viewModel::updateBed // Изменено!
                 )
             }
         }
@@ -207,48 +206,75 @@ fun BedList(
     beds: List<Bed>,
     modifier: Modifier = Modifier,
     navController: NavController,
-    onDeleteBed: (Bed) -> Unit
+    onDeleteBed: (Bed) -> Unit,
+    updateBed: (Bed) -> Unit
 ) {
     val context = LocalContext.current
-    var hoursDay by remember { mutableStateOf("10") }
-    var hoursEven by remember { mutableStateOf("11") }
+    var hoursDay by remember { mutableStateOf("8") }
+    var hoursEven by remember { mutableStateOf("14") }
+
     Column(modifier = modifier) {
-        Column() {
-            Row(modifier = Modifier.fillMaxWidth()) {
+        // Раздел уведомлений
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = "Уведомления о поливе",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 OutlinedTextField(
                     value = hoursDay,
                     onValueChange = { hoursDay = it },
-                    label = { Text("Часы день") },
+                    label = { Text("Утро (часы)") },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
-                Button(onClick = {
-                    val scheduler = WateringNotificationScheduler(context)
-                    scheduler.rescheduleNotifications(
-                        morningHour = hoursDay.toIntOrNull() ?: 8,
-                        afternoonHour = hoursEven.toIntOrNull() ?: 14
-                    )
-                }) { }
+                Text("-", modifier = Modifier.padding(horizontal = 4.dp))
                 OutlinedTextField(
                     value = hoursEven,
                     onValueChange = { hoursEven = it },
-                    label = { Text("Часы вечер") },
+                    label = { Text("Вечер (часы)") },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = {
+                        val scheduler = WateringNotificationScheduler(context)
+                        scheduler.rescheduleNotifications(
+                            morningHour = hoursDay.toIntOrNull() ?: 8,
+                            afternoonHour = hoursEven.toIntOrNull() ?: 14
+                        )
+                    },
+                    modifier = Modifier.height(56.dp)
+                ) {
+                    Text("Установить")
+                }
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
         LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(beds, key = { it.id }) { bed ->
-                BedCard(bed = bed,
+                BedCard(
+                    bed = bed,
                     onClick = { navController.navigate(Screens.BedDetail.createRoute(bed.id)) },
-                    onDelete = { onDeleteBed(bed) })
-
+                    onDelete = { onDeleteBed(bed) },
+                    updateBed = updateBed // Изменено!
+                )
             }
         }
     }
@@ -259,9 +285,101 @@ fun BedList(
 fun BedCard(
     bed: Bed,
     onClick: () -> Unit,
-    onDelete: (Bed) -> Unit
+    onDelete: (Bed) -> Unit,
+    updateBed: (Bed) -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var newBedName by remember { mutableStateOf(bed.name) }
+    var bedTileX by remember { mutableStateOf(bed.tileX.toString()) }
+    var bedTileY by remember { mutableStateOf(bed.tileY.toString()) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(showUpdateDialog) {
+        if (showUpdateDialog) {
+            newBedName = bed.name
+            bedTileX = bed.tileX.toString()
+            bedTileY = bed.tileY.toString()
+        }
+    }
+
+    if (showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = { Text("Редактирование грядки") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = newBedName,
+                        onValueChange = { newBedName = it },
+                        label = { Text("Название грядки") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = bedTileX,
+                        onValueChange = { bedTileX = it },
+                        label = { Text("Размер по X") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = bedTileY,
+                        onValueChange = { bedTileY = it },
+                        label = { Text("Размер по Y") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    TextButton(
+                        onClick = {
+                            showUpdateDialog = false
+                            showDeleteDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Удалить",
+                            tint = Color.Red,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text("Удалить грядку", color = Color.Red)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newBedName.isNotBlank() && bedTileX.isNotBlank() && bedTileY.isNotBlank()) {
+                            scope.launch {
+                                val updatedBed = bed.copy(
+                                    name = newBedName,
+                                    tileX = bedTileX.toIntOrNull() ?: bed.tileX,
+                                    tileY = bedTileY.toIntOrNull() ?: bed.tileY
+                                )
+                                updateBed(updatedBed)
+                                showUpdateDialog = false
+                            }
+                        }
+                    }
+                ) {
+                    Text("Сохранить")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showUpdateDialog = false }
+                ) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
 
     Card(
         modifier = Modifier
@@ -278,6 +396,7 @@ fun BedCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Иконка
             Text(
                 text = "🌿",
                 fontSize = 32.sp,
@@ -286,34 +405,46 @@ fun BedCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            Text(
-                text = bed.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF1B5E20),
-                modifier = Modifier.weight(1f)
-            )
+            // Название и размер
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = bed.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1B5E20)
+                )
+                Text(
+                    text = "Размер: ${bed.tileX} × ${bed.tileY}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF1B5E20).copy(alpha = 0.7f)
+                )
+            }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
+            // Кнопки действий
             IconButton(
-                onClick = { showDeleteDialog = true },
+                onClick = { showUpdateDialog = true },
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Delete,
-                    contentDescription = "Удалить грядку",
-                    tint = Color(0xFFD32F2F)
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = "Обновить грядку",
+                    tint = Color(0xFF796E6E)
                 )
             }
         }
     }
 
+    // Диалог удаления
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Удалить грядку?") },
-            text = { Text("Грядка \"${bed.name}\" будет удалена безвозвратно.") },
+            text = {
+                Text(
+                    text = "Грядка \"${bed.name}\" будет удалена безвозвратно.\nВсе растения на ней также будут удалены.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {

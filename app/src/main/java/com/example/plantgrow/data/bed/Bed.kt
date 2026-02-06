@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class Bed(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val name: String,
+    var name: String,
     val description: String = "",
     val createdAt: String = "",
     val tileX: Int,

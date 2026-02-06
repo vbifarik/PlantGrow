@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -23,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -825,16 +827,51 @@ fun BedPlantsList(
     onPlantClick: (Plant) -> Unit,
     onDeleteClick: (Int) -> Unit
 ) {
+    val (planted, unplanted) = bedPlants.partition {
+        it.bedPlant.posX != null && it.bedPlant.posY != null
+    }
+
+    val unplantedGrouped = unplanted.groupBy { it.plant.id }
+
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(bedPlants, key = { it.bedPlant.id }) { bedPlantWithPlant ->
+        items(planted, key = { it.bedPlant.id }) { bedPlantWithPlant ->
             BedPlantCard(
                 bedPlantWithPlant = bedPlantWithPlant,
                 onPlantClick = { onPlantClick(bedPlantWithPlant.plant) },
                 onDeleteClick = { onDeleteClick(bedPlantWithPlant.bedPlant.id) }
             )
+        }
+
+        items(unplantedGrouped.entries.toList(), key = { it.key }) { (plantId, plants) ->
+            if (plants.isNotEmpty()) {
+                val firstPlant = plants.first()
+                val totalQuantity = plants.sumOf { it.bedPlant.quantity }
+
+                val groupedBedPlant = BedPlantWithPlant(
+                    bedPlant = firstPlant.bedPlant.copy(
+                        quantity = totalQuantity,
+                        posX = null,
+                        posY = null,
+                        plantingDate = ""
+                    ),
+                    plant = firstPlant.plant
+                )
+
+                BedPlantCard(
+                    bedPlantWithPlant = groupedBedPlant,
+                    onPlantClick = { onPlantClick(firstPlant.plant) },
+                    onDeleteClick = {
+                        plants.forEach { plant ->
+                            onDeleteClick(plant.bedPlant.id)
+                        }
+                    },
+                    modifier = Modifier,
+                    isGrouped = true
+                )
+            }
         }
     }
 }
@@ -844,29 +881,41 @@ fun BedPlantCard(
     bedPlantWithPlant: BedPlantWithPlant,
     onPlantClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isGrouped: Boolean = false
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    // Диалог подтверждения удаления
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = {
                 Text(
-                    "Удаление растения",
+                    if (isGrouped) "Удаление группы растений" else "Удаление растения",
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Column {
-                    Text("Вы точно хотите удалить растение?")
+                    Text(
+                        if (isGrouped)
+                            "Вы точно хотите удалить группу растений?"
+                        else
+                            "Вы точно хотите удалить растение?"
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "'${bedPlantWithPlant.plant.name}'",
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1B5E20)
                     )
+                    if (isGrouped) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Количество: ${bedPlantWithPlant.bedPlant.quantity}",
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     if (bedPlantWithPlant.bedPlant.posX != null && bedPlantWithPlant.bedPlant.posY != null) {
                         Text(
@@ -910,7 +959,6 @@ fun BedPlantCard(
         )
     ) {
         Column {
-            // Основная информация о растении
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -955,7 +1003,8 @@ fun BedPlantCard(
                     Text(
                         text = "Количество: ${bedPlantWithPlant.bedPlant.quantity}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (isGrouped) FontWeight.Bold else FontWeight.Normal
                     )
 
                     if (bedPlantWithPlant.bedPlant.plantingDate.isNotEmpty()) {
@@ -966,7 +1015,6 @@ fun BedPlantCard(
                         )
                     }
 
-                    // Показываем координаты, если растение посажено на сетке
                     if (bedPlantWithPlant.bedPlant.posX != null && bedPlantWithPlant.bedPlant.posY != null) {
                         Text(
                             text = "📍 Позиция: ${bedPlantWithPlant.bedPlant.posX},${bedPlantWithPlant.bedPlant.posY}",
@@ -974,11 +1022,17 @@ fun BedPlantCard(
                             color = Color(0xFF5E7A3C),
                             fontWeight = FontWeight.Bold
                         )
+                    } else if (isGrouped) {
+                        Text(
+                            text = "📦 Не посажено",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF757575),
+                            fontStyle = FontStyle.Italic
+                        )
                     }
                 }
             }
 
-            // Панель с кнопкой удаления
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1001,7 +1055,7 @@ fun BedPlantCard(
                     ) {
                         Text(text = "🗑️", fontSize = 14.sp)
                         Text(
-                            text = "Удалить",
+                            text = if (isGrouped) "Удалить все" else "Удалить",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )

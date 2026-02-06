@@ -37,7 +37,6 @@ interface BedPlantDao {
     @Query("SELECT COUNT(*) FROM bed_plants WHERE bedId = :bedId")
     suspend fun getPlantCountForBed(bedId: Int): Int
 
-    // ИЗМЕНЕНО: Правильный запрос для получения BedPlantWithPlant
     @Transaction
     @Query("""
         SELECT * FROM bed_plants
@@ -45,6 +44,15 @@ interface BedPlantDao {
         ORDER BY id DESC
     """)
     fun getBedPlantsWithPlants(bedId: Int): Flow<List<BedPlantWithPlant>>
+
+    @Query("""
+        UPDATE bed_plants 
+        SET posX = NULL, posY = NULL, plantingDate = "" 
+        WHERE bedId = :bedId 
+        AND (posX > :maxX OR posY > :maxY)
+    """)
+    suspend fun resetOutOfBoundsPositions(bedId: Int, maxX: Int, maxY: Int)
+
     @Query("SELECT mainGenus, COUNT(*) as plantCount FROM plants WHERE mainGenus != '' GROUP BY mainGenus ORDER BY mainGenus")
     suspend fun getGeneraWithCount(): List<GenusWithCount>
 

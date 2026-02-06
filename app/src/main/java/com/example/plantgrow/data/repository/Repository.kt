@@ -25,7 +25,21 @@ class GardenRepository @Inject constructor(
     fun getAllBeds(): Flow<List<Bed>> = bedDao.getAllBeds()
     suspend fun getBedById(bedId: Int): Bed? = bedDao.getBedById(bedId)
     suspend fun insertBed(bed: Bed): Long = bedDao.insert(bed)
-    suspend fun updateBed(bed: Bed) = bedDao.update(bed)
+
+    suspend fun updateBedAndAdjustPlants(updatedBed: Bed) {
+        bedPlantDao.resetOutOfBoundsPositions(
+            bedId = updatedBed.id,
+            maxX = updatedBed.tileX,
+            maxY = updatedBed.tileY,
+
+        )
+
+        bedDao.update(updatedBed)
+    }
+    suspend fun updateBed(bed: Bed) {
+        updateBedAndAdjustPlants(bed)
+    }
+
     suspend fun deleteBed(bed: Bed) = bedDao.delete(bed.id)
 
     // === Методы для растений на грядках ===
@@ -34,16 +48,7 @@ class GardenRepository @Inject constructor(
     suspend fun deleteAllBedPlantsByBed(bedId: Int) = bedPlantDao.deleteAllBedPlantsByBed(bedId)
     suspend fun updateBedPlant(bedPlant: BedPlant) = bedPlantDao.update(bedPlant)
     suspend fun getBedPlantById(bedPlantId: Int): BedPlant? = bedPlantDao.getBedPlantById(bedPlantId)
-    suspend fun getBedPlant(bedId: Int, plantId: Int): BedPlant? = bedPlantDao.getBedPlant(bedId, plantId)
     fun getBedPlantsWithPlants(bedId: Int): Flow<List<BedPlantWithPlant>> = bedPlantDao.getBedPlantsWithPlants(bedId)
-
-    suspend fun isPlantPlantedOnBed(bedId: Int, plantId: Int): Boolean {
-        return bedPlantDao.getBedPlant(bedId, plantId) != null
-    }
-
-    suspend fun getPlantQuantityOnBed(bedId: Int, plantId: Int): Int {
-        return bedPlantDao.getBedPlant(bedId, plantId)?.quantity ?: 0
-    }
 
     // === Методы для растений ===
     fun getAllPlants(): Flow<List<Plant>> = plantDao.getAllPlants()
@@ -59,15 +64,6 @@ class GardenRepository @Inject constructor(
     fun getAllPests(): Flow<List<Pest>> = pestDao.getAllPests()
     suspend fun getPestById(pestId: Int): Pest? = pestDao.getPestById(pestId)
 
-    suspend fun getAllGenera(): List<String> = plantDao.getAllGenera()
-    suspend fun getGeneraWithCount(): List<GenusWithCount> = plantDao.getGeneraWithCount()
-
-    fun getUnplantedPlants(bedId: Int): Flow<List<Plant>> {
-        return plantDao.getUnplantedPlants(bedId)
-    }
-    suspend fun getPlantedCountOnGrid(bedId: Int, plantId: Int): Int {
-        return bedPlantDao.getPlantedCountOnGrid(bedId, plantId)
-    }
     suspend fun getAllBedPlantsForPlant(bedId: Int, plantId: Int): List<BedPlant> {
         return bedPlantDao.getAllBedPlantsForPlant(bedId, plantId)
     }
